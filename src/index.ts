@@ -15,6 +15,7 @@
 
 export * from './tokens.js'
 export * from './fonts.js'
+export * from './gradient.js'
 export * from './PdfPage.js'
 export * from './ReportTitle.js'
 export * from './SectionTitle.js'

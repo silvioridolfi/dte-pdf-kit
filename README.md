@@ -2,8 +2,8 @@
 
 Kit de diseño PDF del DTE para [`@react-pdf/renderer`](https://react-pdf.org/):
 tokens, tipografía y componentes reutilizables entre apps con identidad
-DTE (navy / violeta / magenta / teal, header en degradé, footer con el
-logo institucional, Encode Sans embebida). Cualquier informe PDF se
+DTE (navy / magenta / teal, header con el degradé de marca, footer con
+el logo institucional, Encode Sans embebida). Cualquier informe PDF se
 arma **solo** con lo que exporta este paquete -- ningún informe define
 su propio color, tamaño de fuente, degradé de header/footer o estilo
 de tabla. Si hace falta algo que el kit no tiene todavía, se agrega
@@ -12,7 +12,7 @@ la app que lo consume.
 
 ## Instalación
 
-El paquete se instala directo desde GitHub (repo privado):
+El paquete se instala directo desde GitHub:
 
 ```bash
 npm install github:silvioridolfi/dte-pdf-kit
@@ -75,8 +75,8 @@ y el footer institucionales se repiten solos en cada uno.
 Única fuente de verdad para colores, tipografía y medidas. No
 hardcodear ningún valor de diseño fuera de acá.
 
-- `colors` -- paleta completa (navy `#06466E`, violeta `#6E4A92`,
-  magenta `#CD2B7B`, teal `#17A8C6`, fondos, bordes, texto, oro/plata/
+- `colors` -- paleta completa (navyDeep `#033650`, navy `#06466E`,
+  magenta `#CD1E6D`, teal `#17A8C6`, fondos, bordes, texto, oro/plata/
   bronce, semáforo success/warning/danger).
 - `fontFamily` -- `'Encode Sans'`.
 - `weight` -- `light` (300) a `extraBold` (800).
@@ -85,12 +85,22 @@ hardcodear ningún valor de diseño fuera de acá.
   medidas de layout, ya en puntos.
 - `mm(value)` -- convierte milímetros a puntos.
 - `A4_MM` -- `{ width: 210, height: 297 }`.
+- `gradientBrand` -- el único degradé del kit: navyDeep -> navy (45%)
+  -> magenta, a 135° (convención CSS). `gradientLineCoords(width,
+  height, angleDeg?)` calcula las coordenadas `userSpaceOnUse` que
+  reproducen ese ángulo en un `<Svg>` de cualquier relación de
+  aspecto (el degradé por defecto de SVG no da el mismo ángulo que
+  uno de CSS en una caja que no es cuadrada). `BrandGradientDef({ id,
+  width, height })` arma el `<Defs><LinearGradient>...` listo para
+  usar -- es lo que usan `PdfPage`, `ReportTitle` y `SectionTitle`
+  internamente, y lo que usa cualquier componente nuevo que necesite
+  el mismo degradé.
 
 ### `PdfPage`
 
-Página A4 con el header (degradé navy -> violeta -> magenta, "DTE" +
-nombre de la dirección) y el footer (logo institucional + numeración
-"N / total") fijos en todas las páginas. Es el único lugar donde un
+Página A4 con el header (degradé de marca del DTE, "DTE" + nombre de
+la dirección) y el footer (logo institucional + numeración "N /
+total") fijos en todas las páginas. Es el único lugar donde un
 reporte nuevo toca `<Page>` -- todo lo demás va adentro.
 
 ```ts
@@ -109,7 +119,7 @@ el degradé, el logo ni la estructura.
 ### `ReportTitle`
 
 Bloque de título: etiqueta opcional ("GRUPO 1"), H1, chips de
-metadata y una línea divisoria con degradé navy -> magenta.
+metadata y una línea divisoria con un tramo del degradé de marca.
 
 ```ts
 ReportTitle({

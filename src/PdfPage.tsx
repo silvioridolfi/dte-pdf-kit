@@ -1,18 +1,8 @@
 import type { ReactNode } from 'react'
-import {
-  Page,
-  View,
-  Text,
-  Image,
-  Svg,
-  Defs,
-  LinearGradient,
-  Stop,
-  Rect,
-  StyleSheet,
-} from '@react-pdf/renderer'
+import { Page, View, Text, Image, Svg, Rect, StyleSheet } from '@react-pdf/renderer'
 import { ensureFontsRegistered } from './fonts.js'
 import { A4_MM, colors, fontFamily, header, footer, mm, pageMargins, weight } from './tokens.js'
+import { BrandGradientDef } from './gradient.js'
 import { FOOTER_LOGO_DATA_URL } from './generated-assets.js'
 
 ensureFontsRegistered()
@@ -55,24 +45,18 @@ const styles = StyleSheet.create({
   },
 })
 
-/** Banda del header: degradé horizontal navy -> violeta (55%) -> magenta,
- * con "DTE" + separador + "Dirección de Tecnología Educativa" a la
- * izquierda y el nombre del programa a la derecha. Se arma con <Svg> en
- * vez de <View> porque @react-pdf/renderer no tiene gradientes de CSS --
- * el único jeito de pintar un degradé es con un <LinearGradient> de SVG
- * detrás del texto. */
+/** Banda del header: degradé de marca del DTE (135°, navyDeep -> navy
+ * al 45% -> magenta), con "DTE" + separador + "Dirección de Tecnología
+ * Educativa" a la izquierda y el nombre del programa a la derecha. Se
+ * arma con <Svg> en vez de <View> porque @react-pdf/renderer no tiene
+ * gradientes de CSS -- el único jeito de pintar un degradé es con un
+ * <LinearGradient> de SVG detrás del texto. */
 function HeaderBand({ bandWidth, title, subtitle }: { bandWidth: number; title: string; subtitle: string }) {
   const bandHeight = header.height
   const midY = bandHeight / 2 + 3
   return (
     <Svg width={bandWidth} height={bandHeight}>
-      <Defs>
-        <LinearGradient id="dteHeaderGrad" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor={colors.navy} />
-          <Stop offset="0.55" stopColor={colors.violet} />
-          <Stop offset="1" stopColor={colors.magenta} />
-        </LinearGradient>
-      </Defs>
+      <BrandGradientDef id="dteHeaderGrad" width={bandWidth} height={bandHeight} />
       <Rect x={0} y={0} width={bandWidth} height={bandHeight} rx={header.radius} fill="url(#dteHeaderGrad)" />
       <Text
         x={16}

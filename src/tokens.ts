@@ -22,9 +22,9 @@ export function mm(value: number): number {
 export const A4_MM = { width: 210, height: 297 }
 
 export const colors = {
+  navyDeep: '#033650',
   navy: '#06466E',
-  violet: '#6E4A92',
-  magenta: '#CD2B7B',
+  magenta: '#CD1E6D',
   teal: '#17A8C6',
 
   cardBg: '#F2F7FA',
@@ -111,3 +111,48 @@ export const kpi = {
 }
 
 export const titleDividerWidth = mm(28)
+
+/**
+ * Degradé de marca del DTE: oscuro (navyDeep) -> navy al 45% -> magenta,
+ * en un ángulo de 135° (convención CSS: 0° = hacia arriba, clockwise --
+ * 135° apunta hacia abajo a la derecha). Es el único degradé del kit --
+ * banda del header, línea bajo el título, barrita de los H2 -- para que
+ * cambiar la identidad visual sea editar esto una sola vez.
+ *
+ * Referencia: el degradé de la Agenda Territorial DTE, medido como
+ * `linear-gradient(135deg, #033650 0%, #06466E 45%, #CD1E6D 100%)`.
+ */
+export const gradientBrand = {
+  angle: 135,
+  stops: [
+    { offset: 0, color: colors.navyDeep },
+    { offset: 0.45, color: colors.navy },
+    { offset: 1, color: colors.magenta },
+  ],
+} as const
+
+/**
+ * Coordenadas (en userSpaceOnUse, mismas unidades que el `<Svg>` que lo
+ * contiene) de la línea de un degradé lineal estilo CSS para una caja de
+ * `width` x `height` y un ángulo en grados (convención CSS). El degradé
+ * por defecto de SVG (`objectBoundingBox`, 0..1 en cada eje por
+ * separado) no da el mismo resultado que un `linear-gradient` de CSS en
+ * una caja que no es cuadrada -- esto replica el algoritmo real de CSS
+ * (longitud de la línea = |width*sin(ángulo)| + |height*cos(ángulo)|,
+ * centrada en el centro de la caja) para que el ángulo se vea igual sea
+ * cual sea la relación de aspecto del `<Svg>`.
+ */
+export function gradientLineCoords(width: number, height: number, angleDeg: number = gradientBrand.angle) {
+  const rad = (angleDeg * Math.PI) / 180
+  const dx = Math.sin(rad)
+  const dy = -Math.cos(rad)
+  const halfLength = (Math.abs(width * dx) + Math.abs(height * dy)) / 2
+  const cx = width / 2
+  const cy = height / 2
+  return {
+    x1: cx - halfLength * dx,
+    y1: cy - halfLength * dy,
+    x2: cx + halfLength * dx,
+    y2: cy + halfLength * dy,
+  }
+}

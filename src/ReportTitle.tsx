@@ -1,5 +1,6 @@
-import { View, Text, Svg, Defs, LinearGradient, Stop, Rect, StyleSheet } from '@react-pdf/renderer'
+import { View, Text, Svg, Rect, StyleSheet } from '@react-pdf/renderer'
 import { colors, fontFamily, mm, titleDividerWidth, weight } from './tokens.js'
+import { BrandGradientDef } from './gradient.js'
 
 export type ReportTitleMeta = { label: string; value: string }
 
@@ -49,8 +50,8 @@ const styles = StyleSheet.create({
 /**
  * Bloque de título de un informe: etiqueta ("GRUPO N", etc.) opcional,
  * H1, chips de metadata (período, generado, integrantes...) y una línea
- * divisoria con un tramo de degradé navy -> magenta. Igual en todos los
- * informes que usen el kit -- cambia el contenido, no el armado.
+ * divisoria con un tramo del degradé de marca del DTE. Igual en todos
+ * los informes que usen el kit -- cambia el contenido, no el armado.
  */
 export function ReportTitle({
   eyebrow,
@@ -90,12 +91,7 @@ export function ReportTitle({
         <View style={styles.dividerLine} />
         <View style={styles.dividerAccent}>
           <Svg width={titleDividerWidth} height={1.6}>
-            <Defs>
-              <LinearGradient id="titleDividerGrad" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0" stopColor={colors.navy} />
-                <Stop offset="1" stopColor={colors.magenta} />
-              </LinearGradient>
-            </Defs>
+            <BrandGradientDef id="titleDividerGrad" width={titleDividerWidth} height={1.6} />
             <Rect x={0} y={0} width={titleDividerWidth} height={1.6} fill="url(#titleDividerGrad)" />
           </Svg>
         </View>
