@@ -1,0 +1,5 @@
+node_modules/
+dist/
+src/generated-assets.ts
+*.tsbuildinfo
+.DS_Store
