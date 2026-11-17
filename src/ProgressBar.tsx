@@ -1,5 +1,6 @@
 import { View } from '@react-pdf/renderer'
 import { colors } from './tokens.js'
+import { toSafeNumber } from './numbers.js'
 
 export type ProgressBarVariant = 'navy' | 'magenta' | 'teal'
 
@@ -20,7 +21,7 @@ export function ProgressBar({
   variant?: ProgressBarVariant
   height?: number
 }) {
-  const pct = Math.max(0, Math.min(100, value))
+  const pct = Math.max(0, Math.min(100, toSafeNumber(value)))
   return (
     <View
       style={{

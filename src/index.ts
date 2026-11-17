@@ -14,6 +14,7 @@
  */
 
 export * from './tokens.js'
+export * from './numbers.js'
 export * from './fonts.js'
 export * from './gradient.js'
 export * from './Text.js'

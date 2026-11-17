@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react'
-import { View, Text, StyleSheet } from '@react-pdf/renderer'
-import { colors, fontFamily, kpi, weight } from './tokens.js'
+import { View, Text as PdfText, StyleSheet } from '@react-pdf/renderer'
+import { A4_MM, colors, fontFamily, kpi, mm, pageMargins, type, weight } from './tokens.js'
 import { ProgressBar, type ProgressBarVariant } from './ProgressBar.js'
+import { Text } from './Text.js'
+import { wrapText } from './text-metrics.js'
+import { toSafeNumber } from './numbers.js'
 
 export type KpiVariant = 'navy' | 'magenta' | 'teal' | 'oro' | 'plata' | 'bronce'
 
@@ -15,7 +18,11 @@ const VARIANT: Record<KpiVariant, { bg: string; accent: string; value: string }>
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  // alignItems: 'stretch' es el default de Yoga para flexDirection:
+  // 'row', pero se deja explícito -- es lo que hace que todas las
+  // tarjetas de una misma fila (envuelta por flexWrap) tomen el alto
+  // de la más alta, sin tener que calcularlo a mano.
+  grid: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: 8, marginBottom: 4 },
   card: {
     position: 'relative',
     borderRadius: kpi.radius,
@@ -27,6 +34,7 @@ const styles = StyleSheet.create({
   },
   accent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: kpi.accentWidth },
   label: { fontFamily, fontWeight: weight.medium, fontSize: 7.5, color: colors.textSecondary, marginTop: 2 },
+  detail: { marginTop: 2 },
   progressWrap: { marginTop: 5 },
 })
 
@@ -34,6 +42,22 @@ const styles = StyleSheet.create({
  * kit -- se le pasan los KpiCard ya con su `columns` elegido. */
 export function KpiGrid({ children }: { children: ReactNode }) {
   return <View style={styles.grid}>{children}</View>
+}
+
+/** Ancho útil de la página (sin márgenes laterales), para estimar el
+ * ancho interior de un KpiCard a partir de su `columns` -- KpiGrid no
+ * tiene por qué conocer en qué página vive, así que esto es una
+ * aproximación conservadora (asume que KpiGrid ocupa todo el ancho de
+ * contenido), nunca puede hacer que `detail` se desborde, como mucho
+ * lo trunca una letra antes de lo estrictamente necesario. */
+function usefulPageWidth(orientation: 'portrait' | 'landscape'): number {
+  const widthMm = orientation === 'landscape' ? A4_MM.height : A4_MM.width
+  return mm(widthMm) - 2 * pageMargins.side
+}
+
+function kpiInnerWidth(columns: 3 | 6, orientation: 'portrait' | 'landscape'): number {
+  const outerWidth = usefulPageWidth(orientation) * (columns === 3 ? 0.31 : 0.15)
+  return outerWidth - (kpi.accentWidth + 7) - 8
 }
 
 /**
@@ -49,6 +73,8 @@ export function KpiCard({
   variant = 'navy',
   progress,
   progressVariant,
+  detail,
+  orientation = 'portrait',
 }: {
   value: string | number
   label: string
@@ -56,21 +82,38 @@ export function KpiCard({
   variant?: KpiVariant
   progress?: number
   progressVariant?: ProgressBarVariant
+  /** Línea chica de apoyo debajo del label (ej. "+3 vs. la etapa
+   * anterior") -- envuelve hasta 2 líneas y después trunca con "…". */
+  detail?: string
+  /** Para estimar cuánto entra en `detail` sin desbordar -- KpiCard
+   * no sabe en qué orientación de página vive, así que hay que
+   * decírselo si el informe es apaisado. */
+  orientation?: 'portrait' | 'landscape'
 }) {
   const palette = VARIANT[variant]
   const width = columns === 3 ? '31%' : '15%'
   const valueFontSize = columns === 3 ? 23 : 17
+  const safeValue = typeof value === 'number' ? toSafeNumber(value) : value
+  const safeProgress = progress === undefined ? undefined : toSafeNumber(progress)
+
+  const detailLines = detail
+    ? wrapText(detail, kpiInnerWidth(columns, orientation), { size: type.label.fontSize, weight: weight.medium }, 2)
+        .lines
+    : []
 
   return (
     <View style={[styles.card, { backgroundColor: palette.bg, width }]}>
       <View style={[styles.accent, { backgroundColor: palette.accent }]} />
-      <Text style={{ fontFamily, fontWeight: weight.extraBold, fontSize: valueFontSize, color: palette.value }}>
-        {value}
-      </Text>
-      <Text style={styles.label}>{label}</Text>
-      {progress !== undefined && (
+      <PdfText style={{ fontFamily, fontWeight: weight.extraBold, fontSize: valueFontSize, color: palette.value }}>
+        {safeValue}
+      </PdfText>
+      <PdfText style={styles.label}>{label}</PdfText>
+      {detailLines.length > 0 && (
+        <Text style={[type.label, styles.detail, { color: colors.textMuted }]}>{detailLines.join('\n')}</Text>
+      )}
+      {safeProgress !== undefined && (
         <View style={styles.progressWrap}>
-          <ProgressBar value={progress} variant={progressVariant ?? (variant === 'oro' || variant === 'plata' || variant === 'bronce' ? 'navy' : variant)} />
+          <ProgressBar value={safeProgress} variant={progressVariant ?? (variant === 'oro' || variant === 'plata' || variant === 'bronce' ? 'navy' : variant)} />
         </View>
       )}
     </View>

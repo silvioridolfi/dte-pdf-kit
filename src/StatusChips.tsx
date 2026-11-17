@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from '@react-pdf/renderer'
 import { colors, fontFamily, mm, weight } from './tokens.js'
+import { toSafeNumber } from './numbers.js'
 
 export type StatusChipKind = 'done' | 'derived' | 'pending'
 
@@ -44,25 +45,24 @@ const styles = StyleSheet.create({
  * en un chip claro con acento teal en la barra ("pending").
  */
 export function StatusChips({ items }: { items: StatusChipItem[] }) {
-  const total = Math.max(
-    1,
-    items.reduce((acc, i) => acc + i.count, 0),
-  )
+  const counts = items.map((i) => toSafeNumber(i.count))
+  const total = Math.max(1, counts.reduce((acc, c) => acc + c, 0))
 
   return (
     <View>
       <View style={styles.bar}>
         {items
-          .filter((i) => i.count > 0)
-          .map((i) => (
+          .map((i, idx) => ({ item: i, count: counts[idx] }))
+          .filter(({ count }) => count > 0)
+          .map(({ item, count }) => (
             <View
-              key={i.key}
-              style={{ width: `${(i.count / total) * 100}%`, backgroundColor: KIND_BAR_COLOR[i.kind] }}
+              key={item.key}
+              style={{ width: `${(count / total) * 100}%`, backgroundColor: KIND_BAR_COLOR[item.kind] }}
             />
           ))}
       </View>
       <View style={styles.grid}>
-        {items.map((i) => {
+        {items.map((i, idx) => {
           const filled = i.kind === 'done' || i.kind === 'derived'
           return (
             <View
@@ -73,7 +73,7 @@ export function StatusChips({ items }: { items: StatusChipItem[] }) {
                 filled ? { backgroundColor: i.kind === 'done' ? colors.navy : colors.magenta } : undefined,
               ]}
             >
-              <Text style={[styles.value, filled ? styles.valueOnDark : undefined]}>{i.count}</Text>
+              <Text style={[styles.value, filled ? styles.valueOnDark : undefined]}>{counts[idx]}</Text>
               <Text style={[styles.label, filled ? styles.labelOnDark : undefined]}>{i.label}</Text>
             </View>
           )

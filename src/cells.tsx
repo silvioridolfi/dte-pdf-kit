@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from '@react-pdf/renderer'
 import { colors, fontFamily, mm, weight } from './tokens.js'
+import { toSafeNumber } from './numbers.js'
 
 const styles = StyleSheet.create({
   // Distrito
@@ -100,10 +101,12 @@ export function DistritoPill({ children }: { children: string }) {
  * (`max`) -- da una referencia visual rápida de qué fila pesa más sin
  * tener que leer los números uno por uno. */
 export function CantidadCell({ value, max }: { value: number; max: number }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0
+  const safeValue = toSafeNumber(value)
+  const safeMax = toSafeNumber(max)
+  const pct = safeMax > 0 ? Math.max(0, Math.min(100, (safeValue / safeMax) * 100)) : 0
   return (
     <View style={styles.equiposWrap}>
-      <Text style={styles.equiposValue}>{value}</Text>
+      <Text style={styles.equiposValue}>{safeValue}</Text>
       <View style={styles.equiposBarTrack}>
         <View style={[styles.equiposBarFill, { width: `${pct}%` }]} />
       </View>
@@ -119,7 +122,8 @@ export const EquiposCell = CantidadCell
  * queda apagado si es 0 -- un 0 no necesita llamar la atención, un
  * número positivo sí (ej. derivados, alertas, pendientes). */
 export function DestacarSiPositivoCell({ value }: { value: number }) {
-  return <Text style={value > 0 ? styles.derivValue : styles.derivZero}>{value}</Text>
+  const safeValue = toSafeNumber(value)
+  return <Text style={safeValue > 0 ? styles.derivValue : styles.derivZero}>{safeValue}</Text>
 }
 
 /** Alias histórico. */
@@ -127,7 +131,8 @@ export const DerivCell = DestacarSiPositivoCell
 
 /** Círculo numerado de ranking: 1° magenta, 2° navy, 3° teal, el resto
  * gris claro (oro/plata/bronce quedó para las tarjetas de KPI). */
-export function RankBadge({ rank }: { rank: number }) {
+export function RankBadge({ rank: rankProp }: { rank: number }) {
+  const rank = toSafeNumber(rankProp)
   if (rank === 1) {
     return (
       <View style={[styles.rankCircle, { backgroundColor: colors.magenta }]}>
@@ -158,7 +163,8 @@ export function RankBadge({ rank }: { rank: number }) {
 
 /** Porcentaje con mini barra: navy si llega al umbral (75% por
  * defecto) o más, magenta si está por debajo. */
-export function PorcentajeCell({ pct, umbral = 75 }: { pct: number; umbral?: number }) {
+export function PorcentajeCell({ pct: pctProp, umbral = 75 }: { pct: number; umbral?: number }) {
+  const pct = toSafeNumber(pctProp)
   const ok = pct >= umbral
   const tone = ok ? colors.navy : colors.magenta
   return (
@@ -177,9 +183,10 @@ export const AsistenciaCell = PorcentajeCell
 /** Número grande y, debajo, un detalle chico en gris (ej. "OT 525 +
  * Asist. 320") -- el total pesa, el desglose acompaña sin competirle. */
 export function PuntosCell({ total, detail }: { total: number | string; detail?: string }) {
+  const safeTotal = typeof total === 'number' ? toSafeNumber(total) : total
   return (
     <View>
-      <Text style={styles.puntosValue}>{total}</Text>
+      <Text style={styles.puntosValue}>{safeTotal}</Text>
       {detail && <Text style={styles.puntosDetail}>{detail}</Text>}
     </View>
   )
