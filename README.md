@@ -415,6 +415,10 @@ Sin ninguno de los props nuevos, el resultado es idéntico al de antes
 de la v0.5.0 -- los tres informes de bitacora-pp que ya lo usan no se
 mueven ni un píxel.
 
+| Portrait | Landscape |
+| --- | --- |
+| ![HorizontalBarChart en portrait](docs/screenshots/horizontal-bar-chart-portrait.png) | ![HorizontalBarChart en landscape](docs/screenshots/horizontal-bar-chart-landscape.png) |
+
 #### `StackedBar`
 
 Una barra de un solo total, segmentada, con la leyenda siempre debajo
@@ -438,6 +442,10 @@ StackedBar({
 
 Un segmento en 0 aparece en la leyenda (ej. "Pendiente 0 (0%)") pero no
 se dibuja en la barra, mientras algún otro segmento sea mayor a 0.
+
+| Portrait | Landscape |
+| --- | --- |
+| ![StackedBar en portrait](docs/screenshots/stacked-bar-portrait.png) | ![StackedBar en landscape](docs/screenshots/stacked-bar-landscape.png) |
 
 #### `ColumnChart`
 
@@ -474,6 +482,10 @@ al 100% del ancho de la columna, cada una siguiente a
 `overlayWidthRatio` del ancho de la anterior, centrada -- cada una con
 su propia altura (no se apilan). Recomendado para 2 o 3 series.
 
+| Portrait | Landscape |
+| --- | --- |
+| ![ColumnChart en portrait](docs/screenshots/column-chart-portrait.png) | ![ColumnChart en landscape](docs/screenshots/column-chart-landscape.png) |
+
 #### `ChartCard` / `ChartGrid`
 
 Tarjeta contenedora para un gráfico (borde fino, mismo radio/padding
@@ -505,6 +517,10 @@ Un gráfico puesto adentro de un `ChartCard` sin `width`/`size`/
   </ChartCard>
 </ChartGrid>
 ```
+
+| Portrait | Landscape |
+| --- | --- |
+| ![ChartCard/ChartGrid en portrait](docs/screenshots/chart-card-grid-portrait.png) | ![ChartCard/ChartGrid en landscape](docs/screenshots/chart-card-grid-landscape.png) |
 
 ### `Text` / `MultilineText`
 
