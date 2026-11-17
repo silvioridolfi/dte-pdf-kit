@@ -116,6 +116,69 @@ PdfPage({
 propio nombre de dirección/programa en la banda del header sin tocar
 el degradé, el logo ni la estructura.
 
+### `ReportHero`
+
+Header grande para informes de **una sola página o apaisados** (ej.
+un cronograma), como primer hijo de `<PdfPage>` en vez de
+`ReportTitle`: banda con el degradé de marca, eyebrow + título en
+blanco a la izquierda y el logo institucional en su versión blanca a
+la derecha; debajo, una fila de datos, un aviso opcional y un pie
+propio del bloque (texto + logo en color). El header fino y el footer
+institucional de `PdfPage` (logo centrado + numeración de página)
+siguen existiendo igual, sin cambios, para los informes largos.
+
+```ts
+ReportHero({
+  eyebrow?: string,
+  title: string,
+  meta?: { label: string; value: string }[],
+  notice?: string,
+  footerText: string,               // nombre de la app y del reporte -- obligatorio, sin default
+  orientation?: 'portrait' | 'landscape',   // default 'portrait' -- tiene que coincidir con el de <PdfPage>
+})
+```
+
+No hay ningún valor por defecto propio de otro proyecto: `eyebrow`,
+`meta` y `notice` son opcionales y quedan vacíos si no se pasan;
+`title` y `footerText` son obligatorios. Lo único fijo entre apps es
+el degradé, los logos (blanco en la banda, en color en el pie) y
+Encode Sans.
+
+`title` tiene que entrar en una línea para el ancho disponible (igual
+que el H1 de `ReportTitle`) -- si no entra, se trunca con "..." en vez
+de superponerse al logo.
+
+**Ejemplo mínimo, vertical:**
+
+```tsx
+<PdfPage>
+  <ReportHero
+    title="Resumen semanal"
+    meta={[{ label: 'Semana', value: '17 al 21 de noviembre' }]}
+    footerText="Mi App · Resumen semanal"
+  />
+</PdfPage>
+```
+
+**Ejemplo mínimo, apaisado** (nota el mismo `orientation` en los dos):
+
+```tsx
+<PdfPage orientation="landscape">
+  <ReportHero
+    eyebrow="Región 1"
+    title="Cronograma de reparaciones e instalaciones"
+    orientation="landscape"
+    meta={[
+      { label: 'Distrito', value: 'Ensenada' },
+      { label: 'Período', value: '18/11/2026 al 22/11/2026' },
+      { label: 'Emitido', value: '17/11/2026' },
+    ]}
+    notice="el cronograma puede reprogramarse por disponibilidad de las escuelas."
+    footerText="Agenda Territorial · Cronograma de reparaciones e instalaciones"
+  />
+</PdfPage>
+```
+
 ### `ReportTitle`
 
 Bloque de título: etiqueta opcional ("GRUPO 1"), H1, chips de
@@ -223,6 +286,11 @@ Celdas especiales para usar en el `render` de una columna de
   con una variante especial por nombre; `"--"` si está vacía (alias
   con la variante especial fija en "Asistencia perfecta":
   `InsigniaChips({ items: string[] })`).
+- `TituloConDetalleCell({ titulo: string; detail?: string })` -- dos
+  líneas: título en negrita y, debajo, un detalle chico en gris (ej.
+  nombre de escuela + `` `CUE ${cue} · ${direccion}` ``).
+  `DataTable` ya acepta cualquier `ReactNode` por celda, así que esto
+  es solo el armado visual estándar del kit para ese caso.
 
 ### `HorizontalBarChart`
 

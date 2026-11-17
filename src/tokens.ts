@@ -41,6 +41,11 @@ export const colors = {
   distritoBg: '#E4F4F8',
   distritoText: '#3E7E96',
 
+  // Celeste claro para texto chico sobre el degradé de marca (ej. el
+  // eyebrow de ReportHero) -- sobre navyDeep/navy el magenta y el teal
+  // no tienen contraste suficiente para un texto en mayúsculas chico.
+  skyLight: '#8FD6E5',
+
   insigniaBg: '#E4EEF5',
   asistenciaPerfectaBg: '#FCE3EF',
 
@@ -105,12 +110,41 @@ export const footer = {
   pageNumberBottom: mm(11),
 }
 
+/** Relación ancho/alto real de los logos institucionales (PNG), para
+ * no deformarlos sea cual sea el alto que se les dé. */
+export const FOOTER_LOGO_RATIO = 1400 / 193
+export const HERO_LOGO_WHITE_RATIO = 1200 / 166
+
 export const kpi = {
   radius: mm(2.5),
   accentWidth: mm(1.2),
 }
 
 export const titleDividerWidth = mm(28)
+
+/** Medidas de `ReportHero`: la banda grande (degradé + eyebrow + título
+ * + logo blanco) para informes de una página o apaisados, y la fila de
+ * pie propia del bloque (texto + logo en color). */
+export const hero = {
+  height: mm(22),
+  radius: mm(3),
+  paddingX: mm(7),
+  paddingY: mm(5),
+  logoHeight: mm(9.5),
+  footerLogoHeight: mm(9),
+}
+
+/**
+ * Ancho útil de la página (A4 menos los márgenes laterales) para una
+ * orientación dada, en puntos. Es el mismo cálculo que usa `PdfPage`
+ * para la banda del header fino -- cualquier componente que necesite
+ * saber cuánto espacio horizontal tiene disponible (ej. `ReportHero`)
+ * lo pide acá en vez de reconstruir la cuenta por su cuenta.
+ */
+export function contentWidth(orientation: 'portrait' | 'landscape' = 'portrait'): number {
+  const widthMm = orientation === 'landscape' ? A4_MM.height : A4_MM.width
+  return mm(widthMm) - 2 * pageMargins.side
+}
 
 /**
  * Degradé de marca del DTE: oscuro (navyDeep) -> navy al 45% -> magenta,

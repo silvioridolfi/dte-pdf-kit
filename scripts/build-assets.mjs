@@ -48,6 +48,7 @@ for (const [name, file] of FONT_WEIGHT_FILES) {
 }
 
 lines.push(`export const FOOTER_LOGO_DATA_URL: string = '${toDataUrl('assets/footer-pba.png', 'image/png')}'`)
+lines.push(`export const HERO_LOGO_WHITE_DATA_URL: string = '${toDataUrl('assets/logo-blanco.png', 'image/png')}'`)
 lines.push('')
 
 writeFileSync(path.join(root, 'src/generated-assets.ts'), lines.join('\n'))

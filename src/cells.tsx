@@ -63,6 +63,10 @@ const styles = StyleSheet.create({
   puntosValue: { fontFamily, fontWeight: weight.extraBold, fontSize: 11, color: colors.navy },
   puntosDetail: { fontFamily, fontWeight: weight.regular, fontSize: 6.2, color: colors.textMuted, marginTop: 1 },
 
+  // Título + detalle en gris chico, dos líneas
+  tituloDetalleTitulo: { fontFamily, fontWeight: weight.semiBold, fontSize: 8.5, color: colors.text },
+  tituloDetalleDetail: { fontFamily, fontWeight: weight.regular, fontSize: 6.8, color: colors.textMuted, marginTop: 1 },
+
   // Chips (insignias, etiquetas, etc.)
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },
   chip: {
@@ -207,4 +211,17 @@ export function Chips({ items, special }: { items: string[]; special?: string })
  * ya consumían este componente). */
 export function InsigniaChips({ items }: { items: string[] }) {
   return <Chips items={items} special="Asistencia perfecta" />
+}
+
+/** Celda de dos líneas: título en negrita y, debajo, un detalle chico
+ * en gris (ej. nombre de escuela + CUE y dirección). `DataTable` ya
+ * acepta cualquier `ReactNode` por celda -- esto es solo el armado
+ * visual estándar para cuando una fila necesita ese detalle de apoyo. */
+export function TituloConDetalleCell({ titulo, detail }: { titulo: string; detail?: string }) {
+  return (
+    <View>
+      <Text style={styles.tituloDetalleTitulo}>{titulo}</Text>
+      {detail && <Text style={styles.tituloDetalleDetail}>{detail}</Text>}
+    </View>
+  )
 }

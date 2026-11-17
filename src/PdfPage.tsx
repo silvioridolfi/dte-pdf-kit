@@ -1,15 +1,11 @@
 import type { ReactNode } from 'react'
 import { Page, View, Text, Image, Svg, Rect, StyleSheet } from '@react-pdf/renderer'
 import { ensureFontsRegistered } from './fonts.js'
-import { A4_MM, colors, fontFamily, header, footer, mm, pageMargins, weight } from './tokens.js'
+import { FOOTER_LOGO_RATIO, colors, contentWidth, fontFamily, header, footer, pageMargins, weight } from './tokens.js'
 import { BrandGradientDef } from './gradient.js'
 import { FOOTER_LOGO_DATA_URL } from './generated-assets.js'
 
 ensureFontsRegistered()
-
-// Relación ancho/alto real del PNG del logo institucional (1400x193)
-// -- así el logo nunca se deforma sea cual sea el alto que le demos.
-const FOOTER_LOGO_RATIO = 1400 / 193
 
 const styles = StyleSheet.create({
   page: {
@@ -123,8 +119,7 @@ export function PdfPage({
   headerTitle?: string
   headerSubtitle?: string
 }) {
-  const widthMm = orientation === 'landscape' ? A4_MM.height : A4_MM.width
-  const bandWidth = mm(widthMm) - 2 * pageMargins.side
+  const bandWidth = contentWidth(orientation)
   const logoWidth = footer.logoHeight * FOOTER_LOGO_RATIO
 
   return (
