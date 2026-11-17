@@ -1,7 +1,7 @@
 import { View, Text, Svg, Rect, Image, StyleSheet } from '@react-pdf/renderer'
-import { HERO_LOGO_WHITE_RATIO, FOOTER_LOGO_RATIO, colors, contentWidth, fontFamily, hero, weight } from './tokens.js'
+import { HERO_LOGO_WHITE_RATIO, colors, contentWidth, fontFamily, hero, weight } from './tokens.js'
 import { BrandGradientDef } from './gradient.js'
-import { FOOTER_LOGO_DATA_URL, HERO_LOGO_WHITE_DATA_URL } from './generated-assets.js'
+import { HERO_LOGO_WHITE_DATA_URL } from './generated-assets.js'
 
 export type ReportHeroMeta = { label: string; value: string }
 
@@ -50,31 +50,25 @@ const styles = StyleSheet.create({
   notice: { marginTop: 6 },
   noticeLine: { fontFamily, fontWeight: weight.regular, fontSize: 8.5, color: colors.text },
   noticeLead: { fontFamily, fontWeight: weight.bold },
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: 0.75,
-    borderTopColor: colors.borderSoft,
-    paddingTop: 6,
-    marginTop: 10,
-  },
-  footerText: { fontFamily, fontWeight: weight.regular, fontSize: 7.5, color: colors.textSecondary },
 })
 
 /**
  * Header grande para informes de una página o apaisados (ej. un
  * cronograma): banda con el degradé de marca del kit, eyebrow +
  * título en blanco a la izquierda y el logo institucional en su
- * versión blanca a la derecha; debajo, una fila de datos, un aviso
- * opcional y un pie propio del bloque (texto + logo en color).
+ * versión blanca a la derecha; debajo, una fila de datos y un aviso
+ * opcional.
  *
  * No reemplaza a `PdfPage`: se usa puesto adentro, como primer hijo,
- * en vez de `ReportTitle` -- el header fino y el footer institucional
- * de `PdfPage` (logo centrado + numeración de página) siguen
- * existiendo igual, sin cambios, para los informes largos que ya los
- * usan. `orientation` tiene que ser el mismo valor que se le pasa a
- * `PdfPage` para que la banda ocupe el ancho útil real de la página.
+ * en vez de `ReportTitle`. El pie institucional (logo + numeración de
+ * página) lo pone `PdfPage` -- pasale `footerText` a `<PdfPage>` (no
+ * acá) para que muestre el texto de la app/informe a la izquierda y
+ * el logo a la derecha, y usá `<PdfPage header="afterFirstPage">`
+ * para que la banda fina del header no se repita encima de esta banda
+ * grande en la primera hoja (ver sección "Reportes de una página o
+ * apaisados con ReportHero" del README). `orientation` tiene que ser
+ * el mismo valor que se le pasa a `PdfPage` para que la banda ocupe el
+ * ancho útil real de la página.
  *
  * `titleLines` (1 por defecto, hasta 2) le da al título lugar real
  * para una segunda línea -- la banda crece esa altura extra
@@ -90,7 +84,7 @@ export function ReportHero({
   titleLines = 1,
   meta,
   notice,
-  footerText,
+  footerText: _footerText,
   orientation = 'portrait',
 }: {
   eyebrow?: string
@@ -98,14 +92,18 @@ export function ReportHero({
   titleLines?: 1 | 2
   meta?: ReportHeroMeta[]
   notice?: string
-  footerText: string
+  /**
+   * @deprecated ReportHero ya no renderiza su propio pie -- pasá
+   * `footerText` a `<PdfPage>` en su lugar (ver el README). Si se
+   * sigue pasando acá, se ignora.
+   */
+  footerText?: string
   orientation?: 'portrait' | 'landscape'
 }) {
   const width = contentWidth(orientation)
   const bandHeight = hero.height + (titleLines === 2 ? hero.twoLineExtraHeight : 0)
   const titleBoxHeight = hero.titleFontSize * hero.titleLineHeightFactor * titleLines
   const logoWidth = hero.logoHeight * HERO_LOGO_WHITE_RATIO
-  const footerLogoWidth = hero.footerLogoHeight * FOOTER_LOGO_RATIO
 
   return (
     <View style={[styles.band, { width }]}>
@@ -148,12 +146,6 @@ export function ReportHero({
           ))}
         </View>
       )}
-
-      <View style={styles.footerRow}>
-        <Text style={styles.footerText}>{footerText}</Text>
-        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-        <Image src={FOOTER_LOGO_DATA_URL} style={{ height: hero.footerLogoHeight, width: footerLogoWidth }} />
-      </View>
     </View>
   )
 }

@@ -109,9 +109,8 @@ hardcodear ningún valor de diseño fuera de acá.
 ### `PdfPage`
 
 Página A4 con el header (degradé de marca del DTE, "DTE" + nombre de
-la dirección) y el footer (logo institucional + numeración "N /
-total") fijos en todas las páginas. Es el único lugar donde un
-reporte nuevo toca `<Page>` -- todo lo demás va adentro.
+la dirección) y el footer institucional fijos. Es el único lugar
+donde un reporte nuevo toca `<Page>` -- todo lo demás va adentro.
 
 ```ts
 PdfPage({
@@ -119,6 +118,8 @@ PdfPage({
   orientation?: 'portrait' | 'landscape',   // default 'portrait'
   headerTitle?: string,                      // default 'Dirección de Tecnología Educativa'
   headerSubtitle?: string,                   // default 'Prácticas Educativas en Ambientes de Trabajo'
+  header?: 'always' | 'afterFirstPage' | 'never',   // default 'always'
+  footerText?: string,                       // sin default -- ver abajo
 })
 ```
 
@@ -126,16 +127,28 @@ PdfPage({
 propio nombre de dirección/programa en la banda del header sin tocar
 el degradé, el logo ni la estructura.
 
+`header` controla cuándo aparece la banda fina: `"always"` (default)
+en todas las hojas, `"afterFirstPage"` a partir de la segunda, o
+`"never"`. Un informe que arranca con `ReportHero` usa
+`"afterFirstPage"` -- la primera hoja ya tiene su propia banda grande,
+y de la segunda en adelante (si la tabla no entra en una sola hoja)
+vuelve la banda fina como encabezado de continuación.
+
+`footerText` cambia el pie institucional: sin pasarlo, el pie queda
+como siempre (logo centrado + numeración). Con un valor, el pie pasa
+a ser una sola fila -- texto a la izquierda, logo y numeración juntos
+a la derecha -- pensada para los informes armados con `ReportHero`
+(que ya no trae su propio pie, para que el logo no se repita en la
+misma hoja). Ver "Reportes de una página o apaisados con ReportHero"
+más abajo.
+
 ### `ReportHero`
 
 Header grande para informes de **una sola página o apaisados** (ej.
 un cronograma), como primer hijo de `<PdfPage>` en vez de
 `ReportTitle`: banda con el degradé de marca, eyebrow + título en
 blanco a la izquierda y el logo institucional en su versión blanca a
-la derecha; debajo, una fila de datos, un aviso opcional y un pie
-propio del bloque (texto + logo en color). El header fino y el footer
-institucional de `PdfPage` (logo centrado + numeración de página)
-siguen existiendo igual, sin cambios, para los informes largos.
+la derecha; debajo, una fila de datos y un aviso opcional.
 
 ```ts
 ReportHero({
@@ -144,16 +157,14 @@ ReportHero({
   titleLines?: 1 | 2,                // default 1
   meta?: { label: string; value: string }[],
   notice?: string,
-  footerText: string,               // nombre de la app y del reporte -- obligatorio, sin default
   orientation?: 'portrait' | 'landscape',   // default 'portrait' -- tiene que coincidir con el de <PdfPage>
 })
 ```
 
 No hay ningún valor por defecto propio de otro proyecto: `eyebrow`,
 `titleLines`, `meta` y `notice` son opcionales y quedan en su default
-o vacíos si no se pasan; `title` y `footerText` son obligatorios. Lo
-único fijo entre apps es el degradé, los logos (blanco en la banda,
-en color en el pie) y Encode Sans.
+o vacíos si no se pasan; `title` es obligatorio. Lo único fijo entre
+apps es el degradé, el logo blanco y Encode Sans.
 
 `title` tiene que entrar en `titleLines` líneas (1 por defecto, hasta
 2) para el ancho disponible (igual que el H1 de `ReportTitle`) -- si
@@ -161,22 +172,41 @@ no entra, se trunca con "..." recién después de agotar esas líneas,
 nunca antes ni superponiéndose al logo (la banda crece sola para darle
 lugar real a la segunda línea cuando `titleLines={2}`).
 
-**Ejemplo mínimo, vertical:**
+> **`footerText` en `ReportHero` está deprecado.** `ReportHero` ya no
+> renderiza su propio pie (duplicaba el logo institucional con el de
+> `PdfPage`) -- si se sigue pasando, se ignora sin romper el build.
+> Pasá `footerText` a `<PdfPage>` en su lugar, como en el patrón de
+> abajo.
+
+### Reportes de una página o apaisados con ReportHero
+
+El patrón completo es `<PdfPage header="afterFirstPage" footerText="...">`
+con `<ReportHero>` como primer hijo (sin `footerText`): la primera
+hoja tiene solo la banda grande de `ReportHero` + el pie de una fila
+de `PdfPage`; si el contenido no entra en una hoja, de la segunda en
+adelante aparece la banda fina de `PdfPage` como encabezado, con el
+mismo pie en todas.
+
+**Vertical:**
 
 ```tsx
-<PdfPage>
+<PdfPage header="afterFirstPage" footerText="Mi App · Resumen semanal">
   <ReportHero
     title="Resumen semanal"
     meta={[{ label: 'Semana', value: '17 al 21 de noviembre' }]}
-    footerText="Mi App · Resumen semanal"
   />
+  {/* ...el resto del informe */}
 </PdfPage>
 ```
 
-**Ejemplo mínimo, apaisado** (nota el mismo `orientation` en los dos):
+**Apaisado** (nota el mismo `orientation` en `PdfPage` y en `ReportHero`):
 
 ```tsx
-<PdfPage orientation="landscape">
+<PdfPage
+  orientation="landscape"
+  header="afterFirstPage"
+  footerText="Agenda Territorial · Cronograma de reparaciones e instalaciones"
+>
   <ReportHero
     eyebrow="Región 1"
     title="Cronograma de reparaciones e instalaciones"
@@ -187,8 +217,8 @@ lugar real a la segunda línea cuando `titleLines={2}`).
       { label: 'Emitido', value: '17/11/2026' },
     ]}
     notice="el cronograma puede reprogramarse por disponibilidad de las escuelas."
-    footerText="Agenda Territorial · Cronograma de reparaciones e instalaciones"
   />
+  {/* ...el resto del informe, ej. un <DataTable> largo */}
 </PdfPage>
 ```
 
