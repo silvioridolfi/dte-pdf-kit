@@ -29,7 +29,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
     marginBottom: 3,
   },
-  title: { fontFamily, fontWeight: weight.extraBold, fontSize: 18, color: colors.white, lineHeight: 1.15 },
+  title: {
+    fontFamily,
+    fontWeight: weight.extraBold,
+    fontSize: hero.titleFontSize,
+    color: colors.white,
+    lineHeight: hero.titleLineHeightFactor,
+  },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
   metaItem: { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
   metaLabel: {
@@ -41,8 +47,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   metaValue: { fontFamily, fontWeight: weight.regular, fontSize: 9, color: colors.text },
-  notice: { fontFamily, fontWeight: weight.regular, fontSize: 8.5, color: colors.text, marginTop: 6 },
-  noticeLead: { fontWeight: weight.bold },
+  notice: { marginTop: 6 },
+  noticeLine: { fontFamily, fontWeight: weight.regular, fontSize: 8.5, color: colors.text },
+  noticeLead: { fontFamily, fontWeight: weight.bold },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -68,10 +75,19 @@ const styles = StyleSheet.create({
  * existiendo igual, sin cambios, para los informes largos que ya los
  * usan. `orientation` tiene que ser el mismo valor que se le pasa a
  * `PdfPage` para que la banda ocupe el ancho útil real de la página.
+ *
+ * `titleLines` (1 por defecto, hasta 2) le da al título lugar real
+ * para una segunda línea -- la banda crece esa altura extra
+ * (`hero.twoLineExtraHeight`) y el título usa una altura explícita de
+ * `titleLines` líneas, así el motor de @react-pdf/renderer trunca con
+ * "..." recién después de agotarlas, nunca antes ni superponiendo el
+ * logo (que no se mueve: la columna del título usa `flex: 1` y el
+ * logo `flexShrink: 0`, fijo).
  */
 export function ReportHero({
   eyebrow,
   title,
+  titleLines = 1,
   meta,
   notice,
   footerText,
@@ -79,26 +95,29 @@ export function ReportHero({
 }: {
   eyebrow?: string
   title: string
+  titleLines?: 1 | 2
   meta?: ReportHeroMeta[]
   notice?: string
   footerText: string
   orientation?: 'portrait' | 'landscape'
 }) {
   const width = contentWidth(orientation)
+  const bandHeight = hero.height + (titleLines === 2 ? hero.twoLineExtraHeight : 0)
+  const titleBoxHeight = hero.titleFontSize * hero.titleLineHeightFactor * titleLines
   const logoWidth = hero.logoHeight * HERO_LOGO_WHITE_RATIO
   const footerLogoWidth = hero.footerLogoHeight * FOOTER_LOGO_RATIO
 
   return (
     <View style={[styles.band, { width }]}>
-      <Svg width={width} height={hero.height}>
-        <BrandGradientDef id="heroBandGrad" width={width} height={hero.height} />
-        <Rect x={0} y={0} width={width} height={hero.height} rx={hero.radius} fill="url(#heroBandGrad)" />
+      <Svg width={width} height={bandHeight}>
+        <BrandGradientDef id="heroBandGrad" width={width} height={bandHeight} />
+        <Rect x={0} y={0} width={width} height={bandHeight} rx={hero.radius} fill="url(#heroBandGrad)" />
       </Svg>
 
-      <View style={[styles.bandContent, { height: hero.height }]}>
+      <View style={[styles.bandContent, { height: bandHeight }]}>
         <View style={styles.bandTextCol}>
           {eyebrow && <Text style={styles.eyebrow}>{eyebrow}</Text>}
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { height: titleBoxHeight }]}>{title}</Text>
         </View>
         {/* Image de @react-pdf/renderer, no un <img> HTML -- no tiene alt. */}
         {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -120,10 +139,14 @@ export function ReportHero({
       )}
 
       {notice && (
-        <Text style={styles.notice}>
-          <Text style={styles.noticeLead}>Aviso: </Text>
-          {notice}
-        </Text>
+        <View style={styles.notice}>
+          {notice.split('\n').map((line, i) => (
+            <Text key={i} style={styles.noticeLine}>
+              {i === 0 && <Text style={styles.noticeLead}>Aviso: </Text>}
+              {line || ' '}
+            </Text>
+          ))}
+        </View>
       )}
 
       <View style={styles.footerRow}>

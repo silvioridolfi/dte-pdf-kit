@@ -122,16 +122,35 @@ export const kpi = {
 
 export const titleDividerWidth = mm(28)
 
+/** Medidas de `DataTable`: `cellGutter` separa el texto de una columna
+ * del de la siguiente (antes no había nada entre columnas); `density`
+ * define el alto de fila -- `compact` es el valor por defecto desde
+ * que existe el gutter, para que agregarlo no infle la cantidad de
+ * páginas de una tabla larga. */
+export const table = {
+  cellGutter: 3,
+  density: {
+    default: { rowPaddingVertical: 4 },
+    compact: { rowPaddingVertical: 2.5 },
+  },
+}
+
 /** Medidas de `ReportHero`: la banda grande (degradé + eyebrow + título
  * + logo blanco) para informes de una página o apaisados, y la fila de
  * pie propia del bloque (texto + logo en color). */
 export const hero = {
   height: mm(22),
+  // Alto extra que suma la banda cuando ReportHero usa titleLines={2}
+  // -- el alto base (height) solo tiene lugar para una línea de
+  // título.
+  twoLineExtraHeight: mm(9),
   radius: mm(3),
   paddingX: mm(7),
   paddingY: mm(5),
   logoHeight: mm(9.5),
   footerLogoHeight: mm(9),
+  titleFontSize: 18,
+  titleLineHeightFactor: 1.15,
 }
 
 /**

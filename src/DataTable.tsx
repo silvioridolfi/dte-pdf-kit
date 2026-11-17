@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { View, Text, StyleSheet } from '@react-pdf/renderer'
-import { colors, fontFamily, weight } from './tokens.js'
+import { colors, fontFamily, table, weight } from './tokens.js'
 
 export type DataTableAlign = 'left' | 'center' | 'right'
+export type DataTableDensity = 'default' | 'compact'
 
 export type DataTableColumn<T> = {
   key: string
@@ -34,16 +35,22 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 5,
   },
-  headerCell: { fontFamily, fontWeight: weight.semiBold, fontSize: 7.8, color: colors.white },
+  headerCell: {
+    fontFamily,
+    fontWeight: weight.semiBold,
+    fontSize: 7.8,
+    color: colors.white,
+    paddingHorizontal: table.cellGutter,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
     paddingHorizontal: 5,
     borderBottomWidth: 0.75,
     borderBottomColor: colors.borderSoft,
   },
   rowZebra: { backgroundColor: colors.rowZebra },
+  cell: { paddingHorizontal: table.cellGutter },
 })
 
 /**
@@ -53,16 +60,26 @@ const styles = StyleSheet.create({
  * filas con zebra clarito. Cada columna define su propio render de
  * celda, así puede ser una celda de texto simple o cualquiera de las
  * celdas especiales de cells.tsx (distrito, insignias, ranking, etc.).
+ *
+ * Cada columna tiene un gutter horizontal fijo (`table.cellGutter`)
+ * para que el texto de una celda no toque el de la siguiente. `density`
+ * (`"compact"` por defecto desde que existe ese gutter) controla el
+ * alto de fila -- `"default"` es el alto que tenía el kit antes del
+ * gutter, para una tabla puntual que lo necesite más espaciada.
  */
 export function DataTable<T>({
   columns,
   rows,
   keyFor,
+  density = 'compact',
 }: {
   columns: DataTableColumn<T>[]
   rows: T[]
   keyFor: (row: T) => string
+  density?: DataTableDensity
 }) {
+  const rowPaddingVertical = table.density[density].rowPaddingVertical
+
   return (
     <View style={styles.table}>
       {/* `fixed` acá no es "posición absoluta en la página" (como el
@@ -85,9 +102,20 @@ export function DataTable<T>({
         ))}
       </View>
       {rows.map((row, idx) => (
-        <View key={keyFor(row)} style={[styles.row, idx % 2 === 1 ? styles.rowZebra : undefined]} wrap={false}>
+        <View
+          key={keyFor(row)}
+          style={[
+            styles.row,
+            { paddingVertical: rowPaddingVertical },
+            idx % 2 === 1 ? styles.rowZebra : undefined,
+          ]}
+          wrap={false}
+        >
           {columns.map((col) => (
-            <View key={col.key} style={{ width: col.width, alignItems: ALIGN_ITEMS[col.align ?? 'left'] }}>
+            <View
+              key={col.key}
+              style={[styles.cell, { width: col.width, alignItems: ALIGN_ITEMS[col.align ?? 'left'] }]}
+            >
               {col.render(row)}
             </View>
           ))}

@@ -1,6 +1,6 @@
 {
   "name": "dte-pdf-kit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Kit de diseño PDF del DTE para @react-pdf/renderer -- tokens, tipografía y componentes reutilizables entre apps con identidad DTE.",
   "type": "module",
   "private": true,
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@react-pdf/renderer": "^4.9.0",
+    "@react-pdf/types": "^2.14.0",
     "@types/react": "^19.2.8",
     "react": "^19.2.8",
     "typescript": "^5.7.3"

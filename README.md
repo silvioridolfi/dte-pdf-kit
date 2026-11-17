@@ -12,18 +12,28 @@ la app que lo consume.
 
 ## Instalación
 
-El paquete se instala directo desde GitHub:
+El repo es público y el paquete se instala por HTTPS fijado por tag:
 
-```bash
-npm install github:silvioridolfi/dte-pdf-kit
+```json
+"dte-pdf-kit": "git+https://github.com/silvioridolfi/dte-pdf-kit.git#v0.4.0"
 ```
+
+en el `package.json` (nunca SSH ni el atajo `github:`, que pnpm
+reescribe al agregarlo). Con pnpm 10+ hay que permitir su build: en
+`pnpm-workspace.yaml`,
+
+```yaml
+onlyBuiltDependencies: [dte-pdf-kit] # pnpm 10
+```
+
+o `allowBuilds` con la clave `dte-pdf-kit@git+https://github.com/silvioridolfi/dte-pdf-kit.git`: `true` (pnpm 12).
 
 `@react-pdf/renderer` y `react` son `peerDependencies` -- la app que
 instala el kit ya los tiene como dependencias propias (16.x/19.x).
 
-No hay paso de build manual: `npm install` dispara el script
-`prepare` del paquete, que compila `dist/` solo (ver "Cómo funciona
-el build" más abajo).
+No hay paso de build manual: `npm install`/`pnpm install` dispara el
+script `prepare` del paquete, que compila `dist/` solo (ver "Cómo
+funciona el build" más abajo).
 
 ## Ejemplo mínimo de un reporte
 
@@ -131,6 +141,7 @@ siguen existiendo igual, sin cambios, para los informes largos.
 ReportHero({
   eyebrow?: string,
   title: string,
+  titleLines?: 1 | 2,                // default 1
   meta?: { label: string; value: string }[],
   notice?: string,
   footerText: string,               // nombre de la app y del reporte -- obligatorio, sin default
@@ -139,14 +150,16 @@ ReportHero({
 ```
 
 No hay ningún valor por defecto propio de otro proyecto: `eyebrow`,
-`meta` y `notice` son opcionales y quedan vacíos si no se pasan;
-`title` y `footerText` son obligatorios. Lo único fijo entre apps es
-el degradé, los logos (blanco en la banda, en color en el pie) y
-Encode Sans.
+`titleLines`, `meta` y `notice` son opcionales y quedan en su default
+o vacíos si no se pasan; `title` y `footerText` son obligatorios. Lo
+único fijo entre apps es el degradé, los logos (blanco en la banda,
+en color en el pie) y Encode Sans.
 
-`title` tiene que entrar en una línea para el ancho disponible (igual
-que el H1 de `ReportTitle`) -- si no entra, se trunca con "..." en vez
-de superponerse al logo.
+`title` tiene que entrar en `titleLines` líneas (1 por defecto, hasta
+2) para el ancho disponible (igual que el H1 de `ReportTitle`) -- si
+no entra, se trunca con "..." recién después de agotar esas líneas,
+nunca antes ni superponiéndose al logo (la banda crece sola para darle
+lugar real a la segunda línea cuando `titleLines={2}`).
 
 **Ejemplo mínimo, vertical:**
 
@@ -248,7 +261,9 @@ StatusChips({
 
 Tabla genérica: header navy con esquinas redondeadas (se repite solo
 en cada página si la tabla no entra entera), filas con zebra clarito.
-Cada columna define su propio render de celda.
+Cada columna define su propio render de celda. Cada columna tiene un
+gutter horizontal fijo (no hay que pasarlo) para que el texto de una
+celda no toque el de la siguiente.
 
 ```ts
 DataTable<T>({
@@ -261,8 +276,15 @@ DataTable<T>({
   }[],
   rows: T[],
   keyFor: (row: T) => string,
+  density?: 'default' | 'compact',   // default 'compact'
 })
 ```
+
+`density="compact"` es el valor por defecto desde que existe el
+gutter entre columnas -- filas más bajas que compensan el espacio
+nuevo, para que agregar el gutter no aumente la cantidad de páginas de
+una tabla larga. `"default"` es el alto de fila que tenía el kit antes
+del gutter, por si una tabla puntual lo necesita más espaciada.
 
 ### Celdas (`cells.tsx`)
 
@@ -306,6 +328,46 @@ HorizontalBarChart({
   labelWidth?: number,  // default 92
   valueWidth?: number,  // default 36
 })
+```
+
+### `Text` / `MultilineText`
+
+`Text` propio del kit (alias `MultilineText`, mismo componente):
+fija `fontFamily` siempre, sin dejarlo nunca a cargo de la herencia.
+Si el contenido es un string con saltos de línea (`\n`), lo parte acá
+mismo y arma cada línea como su propio nodo de texto, en vez de un
+`\n` literal adentro de un mismo `<Text>` -- que es donde
+`@react-pdf/renderer` puede re-resolver la fuente de la línea nueva
+sin heredarla del padre y caer a Helvetica. Se usa en vez del `Text`
+de `@react-pdf/renderer` para cualquier párrafo que pueda traer
+saltos de línea (el `notice` de `ReportHero` y el cuerpo de `Note` ya
+lo usan internamente).
+
+```ts
+Text({
+  children: ReactNode,     // si es un string con '\n', se parte solo
+  style?: Style | Style[],
+})
+```
+
+### `Note`
+
+Bloque de nota o párrafo final para el cierre de un informe
+(aclaraciones, metodología, observaciones): título chico en
+mayúsculas (opcional, `"Nota"` por defecto) + párrafo, con
+`MultilineText` por debajo.
+
+```ts
+Note({
+  title?: string,          // default 'Nota'
+  children: string,        // puede traer '\n'
+})
+```
+
+```tsx
+<Note title="Nota metodológica">
+  {'Las fechas se calculan según la disponibilidad de los equipos de técnicos.\nAnte un imprevisto, contactar a la coordinación regional.'}
+</Note>
 ```
 
 ### Fuentes (`fonts.ts`)
