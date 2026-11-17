@@ -15,18 +15,20 @@ la app que lo consume.
 El repo es público y el paquete se instala por HTTPS fijado por tag:
 
 ```json
-"dte-pdf-kit": "git+https://github.com/silvioridolfi/dte-pdf-kit.git#v0.4.0"
+"dte-pdf-kit": "git+https://github.com/silvioridolfi/dte-pdf-kit.git#v0.5.0"
 ```
 
 en el `package.json` (nunca SSH ni el atajo `github:`, que pnpm
-reescribe al agregarlo). Con pnpm 10+ hay que permitir su build: en
-`pnpm-workspace.yaml`,
+reescribe al agregarlo). Con pnpm 10 o posterior hay que permitir su
+build: en `pnpm-workspace.yaml`,
 
 ```yaml
 onlyBuiltDependencies: [dte-pdf-kit] # pnpm 10
 ```
 
-o `allowBuilds` con la clave `dte-pdf-kit@git+https://github.com/silvioridolfi/dte-pdf-kit.git`: `true` (pnpm 12).
+o `allowBuilds` con la clave
+`dte-pdf-kit@git+https://github.com/silvioridolfi/dte-pdf-kit.git`:
+`true` (pnpm 12 -- verificado con pnpm 12.3.4).
 
 `@react-pdf/renderer` y `react` son `peerDependencies` -- la app que
 instala el kit ya los tiene como dependencias propias (16.x/19.x).
@@ -87,12 +89,27 @@ hardcodear ningún valor de diseño fuera de acá.
 
 - `colors` -- paleta completa (navyDeep `#033650`, navy `#06466E`,
   magenta `#CD1E6D`, teal `#17A8C6`, fondos, bordes, texto, oro/plata/
-  bronce, semáforo success/warning/danger).
+  bronce, semáforo success/warning/danger). `textMuted` y
+  `distritoText` están pensados para cumplir 4,5:1 de contraste contra
+  sus fondos reales (ver el comentario arriba de `colors` en
+  `tokens.ts` para los números exactos y la fórmula WCAG usada);
+  `neutral` (`#7B8794`, 3,66:1 sobre blanco) es el color fijo de
+  "Otras"/agregados en los gráficos, no un color de texto.
 - `fontFamily` -- `'Encode Sans'`.
 - `weight` -- `light` (300) a `extraBold` (800).
-- `type` -- estilos de texto listos (`h1`, `h2`, `body`, `label`).
-- `pageMargins`, `header`, `footer`, `kpi`, `titleDividerWidth` --
-  medidas de layout, ya en puntos.
+- `type` -- estilos de texto listos (`h1`, `h2`, `body`, `label`,
+  `cardTitle` -- título de `ChartCard`, bold 9pt).
+- `pageMargins`, `header`, `footer`, `kpi`, `chartCard`,
+  `titleDividerWidth` -- medidas de layout, ya en puntos.
+- `chartPalette` -- 5 colores para series de gráficos (navy, magenta,
+  teal, skyLight, navyDeep, en ese orden); `chartColor(índice)` la
+  recorre y, desde la 6ª serie, repite el ciclo aclarado 60% con
+  `tint()`. **Se recomienda un máximo de 4 series** por gráfico --
+  navy y navyDeep tienen muy poco contraste entre sí (1,28:1); la 5ª
+  es el último recurso. `chartContour(color)`/`chartNeedsContour(color)`
+  dan el contorno de 0,5pt que los componentes de gráficos agregan
+  solos a `skyLight` y a los colores del segundo ciclo en adelante
+  (contraste insuficiente como para depender solo del color).
 - `mm(value)` -- convierte milímetros a puntos.
 - `A4_MM` -- `{ width: 210, height: 297 }`.
 - `gradientBrand` -- el único degradé del kit: navyDeep -> navy (45%)
@@ -260,8 +277,18 @@ KpiCard({
   variant?: 'navy' | 'magenta' | 'teal' | 'oro' | 'plata' | 'bronce', // default 'navy'
   progress?: number,              // 0-100, si se quiere la barra
   progressVariant?: 'navy' | 'magenta' | 'teal',
+  detail?: string,                // línea chica debajo del label, envuelve 2 líneas y trunca
+  orientation?: 'portrait' | 'landscape', // default 'portrait' -- para estimar el ancho real de `detail`
 })
 ```
+
+`KpiGrid` estira todas las tarjetas de una misma fila (la que envuelve
+`flexWrap`) a la altura de la más alta -- es el `alignItems: 'stretch'`
+por defecto de Yoga, no hace falta pedirlo.
+
+Los valores numéricos (`value` cuando es `number`, `progress`) pasan
+por `toSafeNumber` (ver "Números seguros" más abajo): un `NaN` o un
+`Infinity` nunca terminan mostrándose literalmente en un informe.
 
 ### `ProgressBar`
 
@@ -344,20 +371,139 @@ Celdas especiales para usar en el `render` de una columna de
   `DataTable` ya acepta cualquier `ReactNode` por celda, así que esto
   es solo el armado visual estándar del kit para ese caso.
 
-### `HorizontalBarChart`
+### Gráficos
 
-Barras horizontales dibujadas a mano con SVG, para una comparación
-rápida de pocos valores (ej. taller vs. territorio).
+Todos dibujados a mano con primitivas de SVG -- `@react-pdf/renderer`
+no trae un componente de gráficos. Comparten reglas: series como
+`{ key, label, color? }` (color de `chartColor(índice)` si no viene),
+números formateados con `toLocaleString('es-AR')` (enteros si toda la
+serie es entera) salvo que se pase `format`, `emptyText` ("Sin datos"
+por defecto) cuando no hay datos o todos los valores son 0, y un ancho
+resuelto con esta prioridad: `width` explícito > ancho interior de un
+`ChartCard` que los contenga > ancho útil de página según
+`orientation`/`size`. Los labels largos se truncan o envuelven siempre
+con medición real de texto (`text-metrics.ts`), nunca estimando por
+cantidad de caracteres.
+
+#### `HorizontalBarChart`
+
+Barras horizontales, para una comparación rápida de pocos valores (ej.
+taller vs. territorio).
 
 ```ts
 HorizontalBarChart({
-  bars: { label: string; value: number; variant?: 'navy' | 'magenta' | 'teal' }[],
-  width?: number,       // default 460
+  bars: { label: string; value: number; variant?: 'navy' | 'magenta' | 'teal'; color?: string }[],
+  width?: number,       // default 460 (o el ancho resuelto si hay orientation/size/ChartCard)
   barHeight?: number,   // default 13
   gap?: number,         // default 9
   labelWidth?: number,  // default 92
   valueWidth?: number,  // default 36
+  sortBy?: 'none' | 'value-desc' | 'value-asc', // default 'none', orden estable
+  maxItems?: number,    // agrupa el resto en una barra "Otras" al final
+  otherLabel?: string,  // default 'Otras'
+  otherColor?: string,  // default colors.neutral
+  labelLines?: 1 | 2,   // trunca o envuelve el label -- sin pasarlo, no se toca (compatible hacia atrás)
+  max?: number,         // escala compartida -- sin pasarlo, usa el máximo de los valores mostrados
+  orientation?: 'portrait' | 'landscape',
+  size?: 'full' | 'half',
+  format?: (n: number) => string,
+  emptyText?: string,
 })
+```
+
+Sin ninguno de los props nuevos, el resultado es idéntico al de antes
+de la v0.5.0 -- los tres informes de bitacora-pp que ya lo usan no se
+mueven ni un píxel.
+
+#### `StackedBar`
+
+Una barra de un solo total, segmentada, con la leyenda siempre debajo
+(nunca al costado). Puntas redondeadas solo en los extremos externos
+de la barra, nunca entre segmentos.
+
+```ts
+StackedBar({
+  segments: { key: string; label: string; value: number; color?: string }[],
+  legendValue?: 'value' | 'percent' | 'both' | 'none', // default 'both'
+  gap?: number,          // default 1, entre segmentos
+  barHeight?: number,    // default 18
+  roundToTotal?: boolean, // redondea los % de la leyenda por "resto mayor" para que sumen 100
+  width?: number,
+  orientation?: 'portrait' | 'landscape',
+  size?: 'full' | 'half',
+  format?: (n: number) => string,
+  emptyText?: string,
+})
+```
+
+Un segmento en 0 aparece en la leyenda (ej. "Pendiente 0 (0%)") pero no
+se dibuja en la barra, mientras algún otro segmento sea mayor a 0.
+
+#### `ColumnChart`
+
+Columnas apiladas (`mode="stacked"`, default) o superpuestas
+(`mode="overlay"`) sobre un eje vertical con ticks "redondos" (pasos
+de 1, 2 o 5 x 10ⁿ). Los labels del eje X se acomodan solos:
+horizontales si entran, inclinados 45° si así entran, o inclinados con
+salteo (conservando siempre el primero y el último) si ni así entran.
+
+```ts
+ColumnChart({
+  series: { key: string; label: string; color?: string }[],
+  data: { label: string; values: Record<string, number> }[],
+  mode?: 'stacked' | 'overlay',  // default 'stacked'
+  plotHeight?: number,            // default 118
+  ticks?: number,                 // default 4
+  showValues?: boolean,           // default true, solo si el número entra sin desbordar la columna
+  showLegend?: boolean,           // default true
+  summary?: string[],             // líneas en negrita debajo de la leyenda
+  gap?: number,                   // default 2, espacio entre segmentos apilados (solo si el segmento mide >=10pt)
+  overlayWidthRatio?: number,     // default 0.56, solo mode="overlay"
+  overlayLabelSeries?: string,    // qué serie etiquetar en "overlay" -- default la última
+  yLabel?: string,
+  width?: number,
+  orientation?: 'portrait' | 'landscape',
+  size?: 'full' | 'half',
+  format?: (n: number) => string,
+  emptyText?: string,
+})
+```
+
+`mode="overlay"` dibuja las series de atrás hacia adelante: la primera
+al 100% del ancho de la columna, cada una siguiente a
+`overlayWidthRatio` del ancho de la anterior, centrada -- cada una con
+su propia altura (no se apilan). Recomendado para 2 o 3 series.
+
+#### `ChartCard` / `ChartGrid`
+
+Tarjeta contenedora para un gráfico (borde fino, mismo radio/padding
+que `KpiCard`, título opcional) y la grilla que las hace envolver: dos
+`size="half"` por fila, o una `size="full"` ocupando toda la fila.
+
+```ts
+ChartCard({
+  title?: string,
+  children: ReactNode,
+  size?: 'full' | 'half',          // default 'full'
+  orientation?: 'portrait' | 'landscape', // default 'portrait'
+})
+
+ChartGrid({ children: ReactNode })
+```
+
+Un gráfico puesto adentro de un `ChartCard` sin `width`/`size`/
+`orientation` propios toma el ancho interior de la tarjeta solo (vía
+`useChartCardWidth()`, expuesto por si se escribe un gráfico nuevo).
+
+```tsx
+<ChartGrid>
+  <ChartCard title="Taller vs. territorio por mes" size="half">
+    <ColumnChart series={series} data={data} />
+  </ChartCard>
+  <ChartCard title="Distribución del total" size="half">
+    <StackedBar segments={segments} />
+  </ChartCard>
+</ChartGrid>
 ```
 
 ### `Text` / `MultilineText`
@@ -400,6 +546,52 @@ Note({
 </Note>
 ```
 
+### Medición de texto (`text-metrics.ts`)
+
+Mide el ancho real de un texto en Encode Sans (con `fontkit`, la misma
+librería que usa `@react-pdf/renderer` para el shaping, sobre los
+mismos TTF que registra `ensureFontsRegistered`) -- nunca por cantidad
+de caracteres. La usan los componentes de gráficos para truncar labels
+y decidir si rotan el eje X; cualquier componente nuevo que necesite
+saber si un texto entra en un ancho dado debería usar esto, no
+`texto.length * constante`.
+
+```ts
+type TextStyleSpec = { size: number; weight: number }
+
+textWidth(text: string, style: TextStyleSpec): number
+fitsInWidth(text: string, maxWidth: number, style: TextStyleSpec): boolean
+fitText(text: string, maxWidth: number, style: TextStyleSpec): { text: string; truncated: boolean }
+wrapText(text: string, maxWidth: number, style: TextStyleSpec, maxLines: number): { lines: string[]; truncated: boolean }
+labelLayout(labels: string[], slotWidth: number, style: TextStyleSpec, opts?: { minGap?: number }): { rotation: 0 | 45; step: number; reservedHeight: number; reservedLeft: number }
+```
+
+`textWidth` coincide con el ancho que efectivamente dibuja
+`@react-pdf/renderer` con menos de 0,01% de error (verificado
+extrayendo los bounding boxes reales de un PDF generado, con
+`pdftotext -bbox`, ver `tests/text-metrics.test.mjs`). La decisión de
+wrap de Yoga dentro de un contenedor de ancho fijo tiene su propio
+margen interno de hasta ~3% del ancho del texto -- `textWidth` siempre
+sobrestima en el sentido seguro (trunca un poco antes de lo
+estrictamente necesario, nunca se desborda).
+
+### Números seguros (`numbers.ts`)
+
+```ts
+toSafeNumber(value: unknown): number       // NaN/Infinity/-Infinity/null/undefined -> 0, negativos válidos se conservan
+toSafeChartNumber(value: unknown): number  // además recorta negativos a 0
+```
+
+`toSafeNumber` es lo que usan los componentes existentes (`ProgressBar`,
+`StatusChips`, `CantidadCell`, `PorcentajeCell`,
+`DestacarSiPositivoCell`, `PuntosCell`, `RankBadge`, `KpiCard`) para
+nunca terminar mostrando literalmente `"NaN"`/`"Infinity"` en un
+informe, conservando un negativo válido (puede tener sentido, ej. una
+diferencia contra la etapa anterior). `toSafeChartNumber` es lo que
+usan los componentes de gráficos (`StackedBar`, `HorizontalBarChart`,
+`ColumnChart`), donde un valor negativo no tiene una representación
+razonable en una barra o columna.
+
 ### Fuentes (`fonts.ts`)
 
 `ensureFontsRegistered()` registra Encode Sans (300 a 800) una sola
@@ -426,6 +618,20 @@ reporte normal no necesita invocarla a mano.
    imagen (ej. `pdftoppm -png -r 150`) y revisar que no haya texto
    cortado ni tablas rotas entre páginas; confirmar con `pdffonts` que
    Encode Sans quedó embebida (`emb yes`).
+
+## Tests
+
+```bash
+npm test
+```
+
+Corre con el test runner nativo de Node (`node --test`), sin sumar un
+framework de testing nuevo. Compila primero (`pretest`) y bundlea con
+`esbuild` los fixtures `.tsx` de `tests/fixtures/` a `.mjs` (hace falta
+porque `node --test` no trae loader de TSX, y `tsx` no puede cargar
+`@react-pdf/renderer`). Los tests que dependen de `pdftotext`/
+`pdffonts`/`pdfinfo` (poppler-utils) se saltan solos si el binario no
+está instalado, en vez de fallar.
 
 ## Cómo funciona el build
 
