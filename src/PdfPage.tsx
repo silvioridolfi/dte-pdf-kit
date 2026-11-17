@@ -3,7 +3,11 @@ import { Page, View, Text, Image, Svg, Rect, StyleSheet } from '@react-pdf/rende
 import { ensureFontsRegistered } from './fonts.js'
 import { FOOTER_LOGO_RATIO, colors, contentWidth, fontFamily, header, footer, pageMargins, weight } from './tokens.js'
 import { BrandGradientDef } from './gradient.js'
-import { FOOTER_LOGO_DATA_URL } from './generated-assets.js'
+import {
+  FOOTER_LOGO_DATA_URL,
+  HEADER_BAND_LANDSCAPE_DATA_URL,
+  HEADER_BAND_PORTRAIT_DATA_URL,
+} from './generated-assets.js'
 
 ensureFontsRegistered()
 
@@ -23,18 +27,23 @@ const styles = StyleSheet.create({
     right: pageMargins.side,
     height: header.height,
   },
-  // Un poco más grande que headerFixed en los cuatro lados -- un
-  // rectángulo lleno del mismo tamaño exacto puede dejar una costura
-  // de 1px por el antialiasing del motor de PDF al coincidir borde a
-  // borde con el blanco de la página.
-  headerCover: {
+  headerTextOverlay: {
     position: 'absolute',
-    top: header.top - 2,
-    left: pageMargins.side - 2,
-    right: pageMargins.side - 2,
-    height: header.height + 4,
+    top: header.top,
+    left: pageMargins.side,
+    right: pageMargins.side,
+    height: header.height,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 16,
+    paddingRight: 14,
   },
-  headerCoverFill: { width: '100%', height: '100%', backgroundColor: colors.white },
+  headerTextLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerDte: { fontFamily, fontWeight: weight.extraBold, fontSize: 11, letterSpacing: 1.4, color: colors.white },
+  headerSeparator: { width: 0.75, height: header.height * 0.44, backgroundColor: colors.white, opacity: 0.55 },
+  headerTitleText: { fontFamily, fontWeight: weight.medium, fontSize: 8, color: colors.white },
+  headerSubtitleText: { fontFamily, fontWeight: weight.semiBold, fontSize: 8, color: colors.white },
   footerFixed: {
     position: 'absolute',
     bottom: footer.logoBottom,
@@ -104,6 +113,64 @@ function HeaderBand({ bandWidth, title, subtitle }: { bandWidth: number; title: 
 }
 
 /**
+ * Misma banda fina, para cuando hace falta que esté AUSENTE de verdad
+ * en la página 1 (no solo tapada) -- ver `header: "afterFirstPage"`
+ * en `PdfPage`. Un degradé de SVG no sobrevive al `render` de
+ * @react-pdf/renderer (se confirmó con un crash real al intentarlo:
+ * el motor no mide el layout de un `<Text>` SVG generado así), así
+ * que el fondo de esta variante es un PNG pre-generado del mismo
+ * degradé (`assets/header-band-{portrait,landscape}.png`, uno por
+ * orientación porque el ancho cambia) en vez de `<Svg>` -- una imagen
+ * sí se puede ocultar o mostrar por página sin romper nada. El texto
+ * ("DTE" + título + subtítulo) va en `<Text>` comunes (no SVG) por la
+ * misma razón, y cada uno usa su propio `render` para no existir en
+ * absoluto en la página 1 (no queda texto para extraer del PDF ni con
+ * `pdftotext`).
+ */
+function ContinuationHeaderBand({
+  bandWidth,
+  bandDataUrl,
+  title,
+  subtitle,
+}: {
+  bandWidth: number
+  bandDataUrl: string
+  title: string
+  subtitle: string
+}) {
+  return (
+    <>
+      <View
+        style={styles.headerFixed}
+        fixed
+        render={({ pageNumber }) =>
+          pageNumber === 1 ? null : (
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image src={bandDataUrl} style={{ width: bandWidth, height: header.height }} />
+          )
+        }
+      />
+      <View
+        style={styles.headerTextOverlay}
+        fixed
+        render={({ pageNumber }) =>
+          pageNumber === 1 ? null : (
+            <>
+              <View style={styles.headerTextLeft}>
+                <Text style={styles.headerDte}>DTE</Text>
+                <View style={styles.headerSeparator} />
+                <Text style={styles.headerTitleText}>{title}</Text>
+              </View>
+              <Text style={styles.headerSubtitleText}>{subtitle}</Text>
+            </>
+          )
+        }
+      />
+    </>
+  )
+}
+
+/**
  * Pie institucional. Sin `footerText`: logo centrado + numeración de
  * página (como siempre). Con `footerText` (informes armados con
  * `ReportHero`): texto a la izquierda, logo y numeración juntos a la
@@ -158,12 +225,10 @@ function Footer({ logoWidth, footerText }: { logoWidth: number; footerText?: str
  * como siempre) en todas las hojas, `"afterFirstPage"` a partir de la
  * segunda (para un informe que arranca con `ReportHero`, que ya trae
  * su propia banda grande en la primera hoja -- no hace falta la fina
- * encima), o `"never"`. La banda en sí sigue siendo un `fixed` estático
- * (poner el degradé adentro de un `render` de @react-pdf/renderer hace
- * que el motor lo dibuje sin pasar por el layout de SVG y rompe) --
- * `"afterFirstPage"` tapa la banda en la página 1 con un rectángulo
- * blanco liso, puesto encima y resuelto con `render` según
- * `pageNumber`, que sí soporta ese contenido simple.
+ * encima), o `"never"`. `"afterFirstPage"` usa `ContinuationHeaderBand`
+ * (ver ahí el porqué de la imagen en vez de SVG): en la página 1 no se
+ * renderiza nada -- ni el fondo ni el texto quedan en el PDF, no es
+ * solo un tapado visual.
  *
  * `footerText` (opcional) cambia el pie institucional: con un valor,
  * el pie pasa a ser texto a la izquierda + logo y numeración a la
@@ -188,20 +253,22 @@ export function PdfPage({
 }) {
   const bandWidth = contentWidth(orientation)
   const logoWidth = footer.logoHeight * FOOTER_LOGO_RATIO
+  const bandDataUrl = orientation === 'landscape' ? HEADER_BAND_LANDSCAPE_DATA_URL : HEADER_BAND_PORTRAIT_DATA_URL
 
   return (
     <Page size="A4" orientation={orientation} style={styles.page}>
-      {headerMode !== 'never' && (
+      {headerMode === 'always' && (
         <View style={styles.headerFixed} fixed>
           <HeaderBand bandWidth={bandWidth} title={headerTitle} subtitle={headerSubtitle} />
         </View>
       )}
 
       {headerMode === 'afterFirstPage' && (
-        <View
-          style={styles.headerCover}
-          fixed
-          render={({ pageNumber }) => (pageNumber === 1 ? <View style={styles.headerCoverFill} /> : null)}
+        <ContinuationHeaderBand
+          bandWidth={bandWidth}
+          bandDataUrl={bandDataUrl}
+          title={headerTitle}
+          subtitle={headerSubtitle}
         />
       )}
 
