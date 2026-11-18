@@ -415,6 +415,20 @@ Sin ninguno de los props nuevos, el resultado es idéntico al de antes
 de la v0.5.0 -- los tres informes de bitacora-pp que ya lo usan no se
 mueven ni un píxel.
 
+**El corte de rótulos largos con "…" solo se activa si se pasa
+`labelLines` (1 o 2).** Sin esa prop, el rótulo se dibuja tal cual
+vino, sin truncar -- es el comportamiento de antes de la v0.5.0,
+mantenido así a propósito para no mover ni un píxel los informes que
+ya usaban el componente. Si un rótulo nuevo puede ser largo, hay que
+pedir `labelLines` explícitamente:
+
+```tsx
+<HorizontalBarChart
+  bars={[{ label: 'Prácticas Profesionalizantes', value: 42 }]}
+  labelLines={1}
+/>
+```
+
 | Portrait | Landscape |
 | --- | --- |
 | ![HorizontalBarChart en portrait](docs/screenshots/horizontal-bar-chart-portrait.png) | ![HorizontalBarChart en landscape](docs/screenshots/horizontal-bar-chart-landscape.png) |

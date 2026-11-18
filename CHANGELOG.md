@@ -1,0 +1,51 @@
+# Changelog
+
+Formato libre, en español rioplatense, un bloque por versión (tag en
+GitHub). No sigue semver estricto -- el paquete es de uso interno,
+instalado por SHA o tag fijo.
+
+## Sin publicar
+
+- Documentación: aclarado en el README de `HorizontalBarChart` que el
+  corte de rótulos largos con "…" solo se activa si se pasa
+  `labelLines` (1 o 2) -- sin esa prop, el rótulo se dibuja tal cual,
+  sin truncar, por compatibilidad hacia atrás. Agregado un ejemplo
+  corto con `labelLines={1}`.
+
+## v0.5.2
+
+- `HorizontalBarChart`: el corte de un rótulo largo con `labelLines`
+  truncaba contra `labelWidth` a secas, dejándolo pegado justo donde
+  arranca la barra (bug reportado al usar v0.5.1 en la agenda). Ahora
+  trunca/envuelve contra `labelWidth - LABEL_BAR_GAP` (4pt), dejando
+  siempre un hueco visible antes de la barra.
+
+## v0.5.1
+
+- `ColumnChart`: una columna (modo `stacked`) o una serie (modo
+  `overlay`) en 0 ya no muestra el número "0" encima.
+- `ColumnChart`: con valores de entrada enteros, el eje Y nunca baja
+  de paso 1 (antes podía mostrar pasos fraccionarios como 0,5 con un
+  máximo chico).
+- `wrapText` (`text-metrics.ts`): una palabra que no entraba ni sola
+  en el ancho disponible se dejaba sin truncar y sin "…" -- afectaba a
+  `HorizontalBarChart` con `labelLines={2}`, y también a
+  `KpiCard.detail` y al título de `ChartCard`, que usan el mismo
+  helper.
+
+## v0.5.0
+
+- Contraste de tokens: `textMuted` y `distritoText` recalculados para
+  cumplir 4,5:1 contra sus fondos reales; nuevo `colors.neutral` para
+  "Otras"/agregados en gráficos.
+- `PdfPage` con `header="afterFirstPage"`: la barra fina del header ya
+  no deja texto extraíble en la hoja 1 (antes la tapaba con un
+  rectángulo blanco, pero el texto seguía ahí).
+- Medición real de texto (`text-metrics.ts`, con `fontkit`) para los
+  componentes de gráficos -- nunca por cantidad de caracteres.
+- Componentes de gráficos nuevos: `StackedBar`, `ColumnChart`,
+  `ChartCard`/`ChartGrid`; `HorizontalBarChart` extendido (`color`,
+  `sortBy`, `maxItems`/"Otras", `labelLines`, `max`) compatible hacia
+  atrás; `KpiCard` con `detail`.
+- Saneamiento de números (`toSafeNumber`/`toSafeChartNumber`) en los
+  componentes existentes y en los gráficos nuevos.
