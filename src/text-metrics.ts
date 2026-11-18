@@ -138,9 +138,21 @@ export function wrapText(
   const lines: string[] = []
   let current = ''
   let i = 0
+  let forcedTruncation = false
 
   while (i < words.length && lines.length < maxLines) {
     const word = words[i]
+    if (current === '' && !fitsInWidth(word, maxWidth, style)) {
+      // Una palabra que no entra ni sola en maxWidth -- antes se
+      // dejaba pasar tal cual (desbordaba sin "…", porque no quedaban
+      // más palabras para marcar la línea como truncada). Se trunca
+      // acá mismo, como su propia línea.
+      lines.push(fitText(word, maxWidth, style).text)
+      forcedTruncation = true
+      i++
+      continue
+    }
+
     const candidate = current ? `${current} ${word}` : word
     if (current === '' || fitsInWidth(candidate, maxWidth, style)) {
       current = candidate
@@ -152,13 +164,13 @@ export function wrapText(
   }
 
   const wordsLeftOver = i < words.length
-  if (lines.length < maxLines) {
+  if (lines.length < maxLines && current) {
     lines.push(current)
     current = ''
   }
 
-  const truncated = wordsLeftOver || current !== ''
-  if (truncated && lines.length > 0) {
+  const truncated = forcedTruncation || wordsLeftOver || current !== ''
+  if ((wordsLeftOver || current !== '') && lines.length > 0) {
     const lastIndex = lines.length - 1
     const extra = current ? ` ${current}` : ''
     const { text: fitted } = fitText(`${lines[lastIndex]}${extra}`, maxWidth, style)

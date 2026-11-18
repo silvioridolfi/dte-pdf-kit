@@ -145,3 +145,26 @@ test('wrapText nunca devuelve una línea cuyo ancho medido supere maxWidth', () 
     assert.ok(textWidth(line, style) <= 90, `"${line}" mide ${textWidth(line, style)}`)
   }
 })
+
+test('wrapText trunca con "…" una palabra que no entra ni sola en maxWidth (en vez de desbordar sin cortar)', () => {
+  // Bug real: "Profesionalizantes" (18 caracteres) no entra en un
+  // maxWidth más angosto que su propio ancho -- antes se renderizaba
+  // tal cual, sin "…", porque no quedaban más palabras para marcar la
+  // línea como truncada (reportado en HorizontalBarChart con
+  // labelLines={2}).
+  const style = { size: 8, weight: 400 }
+  const word = 'Profesionalizantes'
+  const wordWidth = textWidth(word, style)
+  const maxWidth = wordWidth - 10
+
+  const { lines, truncated } = wrapText(`Prácticas ${word}`, maxWidth, style, 2)
+
+  assert.equal(truncated, true)
+  assert.ok(
+    lines.some((l) => l.includes('…')),
+    `ninguna línea tiene "…": ${JSON.stringify(lines)}`,
+  )
+  for (const line of lines) {
+    assert.ok(textWidth(line, style) <= maxWidth, `"${line}" mide ${textWidth(line, style)}, maxWidth=${maxWidth}`)
+  }
+})

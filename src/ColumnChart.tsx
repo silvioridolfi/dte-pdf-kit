@@ -95,7 +95,11 @@ export function ColumnChart({
     mode === 'stacked' ? series.reduce((acc, s) => acc + d.values[s.key], 0) : Math.max(...series.map((s) => d.values[s.key]))
   const maxValue = Math.max(...safeData.map(columnTotal))
 
-  const step = niceStep(maxValue, ticks)
+  // Si todos los valores de entrada son enteros, el eje nunca debería
+  // mostrar un paso fraccionario (ej. 0,5) -- se fuerza un paso
+  // "redondo" de al menos 1.
+  const allIntegers = allValues.every((v) => Number.isInteger(v))
+  const step = niceStep(maxValue, ticks, allIntegers)
   const axisMax = Math.max(step, Math.ceil(maxValue / step) * step)
   const tickValues: number[] = []
   for (let v = 0; v <= axisMax + step / 2; v += step) tickValues.push(v)
@@ -160,17 +164,19 @@ export function ColumnChart({
 
             const tallestValue =
               mode === 'stacked' ? columnTotal(d) : Math.max(...series.map((s) => d.values[s.key]))
-            const valueText = formatChartValue(
-              mode === 'overlay' ? d.values[labelSeriesKey] : tallestValue,
-              allValues,
-              format,
-            )
+            // En 'stacked', una columna con total 0 queda vacía (sin
+            // número); en 'overlay' se etiqueta el valor puntual de
+            // `labelSeriesKey`, así que si ESA serie vale 0 (aunque
+            // otra serie de la misma columna sea > 0) tampoco se
+            // dibuja número.
+            const displayValue = mode === 'overlay' ? d.values[labelSeriesKey] : tallestValue
+            const valueText = formatChartValue(displayValue, allValues, format)
             const topY = plotHeight - (tallestValue / axisMax) * plotHeight
 
             return (
               <G key={d.label}>
                 {bars}
-                {showValues && fitsInWidth(valueText, columnSlotWidth, VALUE_LABEL_STYLE) && (
+                {showValues && displayValue > 0 && fitsInWidth(valueText, columnSlotWidth, VALUE_LABEL_STYLE) && (
                   <SvgText
                     x={slotX + columnSlotWidth / 2}
                     y={topY - 3}
@@ -296,11 +302,15 @@ function renderOverlayColumn(
 }
 
 /** Paso "redondo" (1, 2 o 5 x 10ⁿ) para los ticks del eje Y, tipo
- * d3.ticks -- nunca un paso arbitrario como 37 o 123. */
-function niceStep(maxValue: number, ticks: number): number {
+ * d3.ticks -- nunca un paso arbitrario como 37 o 123. Con
+ * `integersOnly` (todos los valores de entrada son enteros), nunca
+ * baja de paso 1 -- si no, un máximo chico (ej. 1 o 2) daba pasos
+ * fraccionarios (0,5) sin sentido para datos que son siempre enteros. */
+function niceStep(maxValue: number, ticks: number, integersOnly = false): number {
   if (maxValue <= 0) return 1
   const rough = maxValue / Math.max(1, ticks)
-  const magnitude = Math.pow(10, Math.floor(Math.log10(rough)))
+  let magnitude = Math.pow(10, Math.floor(Math.log10(rough)))
+  if (integersOnly) magnitude = Math.max(1, magnitude)
   const residual = rough / magnitude
   const niceResidual = residual <= 1 ? 1 : residual <= 2 ? 2 : residual <= 5 ? 5 : 10
   return niceResidual * magnitude
