@@ -14,6 +14,7 @@ const labelLines = Number(process.argv[3])
 const size = process.argv[4]
 const inCard = process.argv[5] === 'card'
 const labelWidth = Number(process.argv[6] ?? 92)
+const orientation = process.argv[7] ?? 'portrait'
 
 ensureFontsRegistered()
 
@@ -21,13 +22,13 @@ const bars = [{ label: 'Prácticas Profesionalizantes', value: 42 }]
 
 function Chart() {
   return (
-    <HorizontalBarChart bars={bars} labelLines={labelLines} labelWidth={labelWidth} orientation="portrait" size={size} />
+    <HorizontalBarChart bars={bars} labelLines={labelLines} labelWidth={labelWidth} orientation={orientation} size={size} />
   )
 }
 
 function Fixture() {
   return inCard ? (
-    <ChartCard title="Tarjeta" size={size} orientation="portrait">
+    <ChartCard title="Tarjeta" size={size} orientation={orientation}>
       <Chart />
     </ChartCard>
   ) : (
@@ -37,7 +38,7 @@ function Fixture() {
 
 const buffer = await renderToBuffer(
   <Document>
-    <Page size="A4" style={{ padding: 0 }}>
+    <Page size="A4" orientation={orientation} style={{ padding: 0 }}>
       <Fixture />
     </Page>
   </Document>,

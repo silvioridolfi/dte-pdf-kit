@@ -30,6 +30,11 @@ const VARIANT_COLOR: Record<NonNullable<BarChartEntry['variant']>, string> = {
   teal: colors.teal,
 }
 
+/** Hueco entre el rótulo (truncado con `labelLines`) y el inicio de
+ * la barra -- sin esto, `fitText`/`wrapText` podían dejar el rótulo
+ * justo pegado a `labelWidth`, donde arranca la barra. */
+export const LABEL_BAR_GAP = 4
+
 /**
  * Barras horizontales simples dibujadas a mano con primitivas de SVG --
  * @react-pdf/renderer no trae un componente de gráficos, así que esto es
@@ -123,7 +128,7 @@ export function HorizontalBarChart({
         const barWidth = Math.max(2, (b.value / maxValue) * barAreaWidth)
         const displayValue = formatChartValue(b.value, values, format)
         const stroke = chartNeedsContour(b.resolvedColor) ? chartContour(b.resolvedColor) : undefined
-        const labelLineTexts = labelLines ? renderLabelLines(b.label, labelWidth, labelLines) : [b.label]
+        const labelLineTexts = computeBarLabelLines(b.label, labelWidth, labelLines)
 
         return (
           <G key={`${b.label}-${i}`} transform={`translate(0, ${y})`}>
@@ -168,6 +173,17 @@ function renderLabelLines(label: string, maxWidth: number, labelLines: 1 | 2): s
     return [fitText(label, maxWidth, style).text]
   }
   return wrapText(label, maxWidth, style, 2).lines
+}
+
+/** Arma las líneas del rótulo de una barra, truncando/envolviendo
+ * (si `labelLines` vino) contra el ancho REAL disponible --
+ * `labelWidth` menos `LABEL_BAR_GAP`, nunca `labelWidth` a secas, que
+ * es exactamente donde arranca la barra. Sin `labelLines`, el rótulo
+ * se dibuja tal cual (comportamiento histórico). */
+export function computeBarLabelLines(label: string, labelWidth: number, labelLines: 1 | 2 | undefined): string[] {
+  if (!labelLines) return [label]
+  const availableWidth = Math.max(0, labelWidth - LABEL_BAR_GAP)
+  return renderLabelLines(label, availableWidth, labelLines)
 }
 
 function groupOthers(

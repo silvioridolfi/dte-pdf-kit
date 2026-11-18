@@ -8,6 +8,7 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { chartCard } from '../dist/index.js'
+import { LABEL_BAR_GAP } from '../dist/BarChart.js'
 
 function hasPoppler() {
   try {
@@ -95,7 +96,7 @@ for (const maxValue of [1, 2, 3, 7, 11]) {
   )
 }
 
-// --- Bug 3: en HorizontalBarChart, el rótulo truncado toca la barra ---
+// --- Bug 3 (v0.5.1): en HorizontalBarChart, el rótulo truncado toca la barra ---
 
 // labelWidth angosto a propósito: "Profesionalizantes" sola (~64pt a
 // 8pt) no entra en 50pt -- es el caso que reproducía el bug (una
@@ -139,6 +140,60 @@ for (const labelLines of [1, 2]) {
           }
         },
       )
+    }
+  }
+}
+
+// --- Bug 4 (v0.5.2): el corte truncaba contra labelWidth a secas, sin
+// restar el hueco hasta la barra -- a diferencia del test de arriba
+// (que solo pedía "no tocar" la barra), acá se exige el margen
+// COMPLETO de LABEL_BAR_GAP, con el ancho de columna real del bug
+// reportado (143pt) y un labelWidth que de verdad obliga a truncar
+// "Prácticas Profesionalizantes" (90pt, menor a su ancho completo). ---
+
+const TRUNCATING_LABEL_WIDTH = 90
+
+for (const labelLines of [1, 2]) {
+  for (const size of ['full', 'half']) {
+    for (const inCard of [false, true]) {
+      for (const orientation of ['portrait', 'landscape']) {
+        const desc = `labelLines=${labelLines} size=${size} ${inCard ? 'adentro' : 'afuera'} de ChartCard, ${orientation}`
+        test(
+          `HorizontalBarChart: el rótulo truncado deja el hueco completo de LABEL_BAR_GAP antes de la barra (${desc})`,
+          { skip: !hasPoppler() && 'poppler-utils no está instalado' },
+          () => {
+            const dir = mkdtempSync(path.join(tmpdir(), 'dte-pdf-kit-test-'))
+            const pdfPath = path.join(dir, 'label-gap-strict.pdf')
+            renderFixture('horizontal-bar-label-gap', pdfPath, [
+              String(labelLines),
+              size,
+              inCard ? 'card' : 'no-card',
+              String(TRUNCATING_LABEL_WIDTH),
+              orientation,
+            ])
+
+            const contentBoxX = inCard ? chartCard.borderWidth + chartCard.padding : 0
+            const barStartX = contentBoxX + TRUNCATING_LABEL_WIDTH
+
+            const words = bboxWords(pdfPath)
+            const labelWords = words.filter(
+              (w) => w.xMin < barStartX - 1 && /[A-Za-zÁÉÍÓÚáéíóúñÑ]/.test(w.text) && w.text !== 'Tarjeta',
+            )
+            assert.ok(labelWords.length > 0, `no se encontró texto del rótulo (${desc})`)
+
+            // El rótulo tiene que haberse cortado (no entra entero en
+            // 90pt) y, sobre todo, dejar el hueco de LABEL_BAR_GAP
+            // completo antes de donde arranca la barra -- pdftotext
+            // devuelve la caja del texto YA truncado, así que acá sí
+            // se ve el bug (a diferencia de extraer el texto plano).
+            const maxXMax = Math.max(...labelWords.map((w) => w.xMax))
+            assert.ok(
+              maxXMax <= barStartX - LABEL_BAR_GAP + 0.5, // +0.5 de tolerancia de redondeo
+              `el rótulo llega a xMax=${maxXMax}, debería dejar el hueco completo antes de ${barStartX} (gap=${LABEL_BAR_GAP}) (${desc})`,
+            )
+          },
+        )
+      }
     }
   }
 }
