@@ -4,6 +4,25 @@ Formato libre, en español rioplatense, un bloque por versión (tag en
 GitHub). No sigue semver estricto -- el paquete es de uso interno,
 instalado por SHA o tag fijo.
 
+## v0.5.4
+
+- **Importante, rompía el build de cualquier app que lo consuma
+  desde una ruta server-only de Next.js (Route Handlers, Server
+  Components):** importar *cualquier cosa* del paquete (aunque el
+  reporte no usara `StackedBar`/`ColumnChart`/`ChartCard`) crasheaba
+  con `"createContext is not a function"`, o directamente no
+  importaba, bajo la condición de resolución `"react-server"` que
+  usan esos entornos -- el build de React para ahí no tiene
+  `createContext`/`useContext`, y `chart-common.ts` los usaba con un
+  `import { createContext, useContext } from 'react'` a nivel de
+  módulo, además de crear el `Context` de `ChartCard` al cargar el
+  módulo (`export const ChartCardWidthContext = createContext(null)`).
+  Encontrado al actualizar bitacora-pp a v0.5.3. Corregido con un
+  import de namespace (`import * as React from 'react'`) -- nunca
+  falla por una propiedad que falte -- y creando el `Context` recién
+  la primera vez que hace falta (al renderizar `ChartCard` o llamar
+  `useChartCardWidth`), nunca al cargar el módulo.
+
 ## v0.5.3
 
 - `PdfPage`: el margen superior de la hoja 1 pasa de 29 a 17 mm con

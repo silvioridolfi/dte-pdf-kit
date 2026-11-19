@@ -3,7 +3,7 @@ import { View, StyleSheet } from '@react-pdf/renderer'
 import { chartCard, colors, type } from './tokens.js'
 import { Text } from './Text.js'
 import { wrapText } from './text-metrics.js'
-import { ChartCardWidthContext, halfChartWidth, usefulPageWidth, type ChartOrientation, type ChartSize } from './chart-common.js'
+import { getChartCardWidthContext, halfChartWidth, usefulPageWidth, type ChartOrientation, type ChartSize } from './chart-common.js'
 
 const styles = StyleSheet.create({
   card: {
@@ -46,6 +46,7 @@ export function ChartCard({
   const titleLines = title
     ? wrapText(title, innerWidth, { size: type.cardTitle.fontSize, weight: type.cardTitle.fontWeight }, 2).lines
     : []
+  const ChartCardWidthContext = getChartCardWidthContext()
 
   return (
     <View style={[styles.card, { width: outerWidth }]} wrap={false}>
