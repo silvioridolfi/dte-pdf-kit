@@ -20,6 +20,12 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: colors.text,
   },
+  pageFirstPageNoHeader: {
+    paddingTop: pageMargins.firstPageTopNoHeader,
+  },
+  continuationTopSpacer: {
+    height: pageMargins.top - pageMargins.firstPageTopNoHeader,
+  },
   headerFixed: {
     position: 'absolute',
     top: header.top,
@@ -171,6 +177,20 @@ function ContinuationHeaderBand({
 }
 
 /**
+ * Compensa, en las hojas 2 en adelante, el margen superior que la
+ * hoja 1 ya no necesita reservar para la barra fina (ver
+ * `pageFirstPageNoHeader` en `PdfPage`): un espacio en el flujo
+ * normal (no absoluto, a diferencia de `ContinuationHeaderBand`) que
+ * repite por hoja con `fixed` y, vía `render`, mide 0 en la hoja 1 y
+ * la diferencia entre `pageMargins.top` y `firstPageTopNoHeader` de
+ * ahí en más -- entre el padding de la página (ya achicado) y esto,
+ * las hojas 2+ terminan con el mismo margen superior de siempre.
+ */
+function ContinuationTopSpacer() {
+  return <View fixed render={({ pageNumber }) => (pageNumber === 1 ? null : <View style={styles.continuationTopSpacer} />)} />
+}
+
+/**
  * Pie institucional. Sin `footerText`: logo centrado + numeración de
  * página (como siempre). Con `footerText` (informes armados con
  * `ReportHero`): texto a la izquierda, logo y numeración juntos a la
@@ -256,7 +276,11 @@ export function PdfPage({
   const bandDataUrl = orientation === 'landscape' ? HEADER_BAND_LANDSCAPE_DATA_URL : HEADER_BAND_PORTRAIT_DATA_URL
 
   return (
-    <Page size="A4" orientation={orientation} style={styles.page}>
+    <Page
+      size="A4"
+      orientation={orientation}
+      style={headerMode === 'afterFirstPage' ? [styles.page, styles.pageFirstPageNoHeader] : styles.page}
+    >
       {headerMode === 'always' && (
         <View style={styles.headerFixed} fixed>
           <HeaderBand bandWidth={bandWidth} title={headerTitle} subtitle={headerSubtitle} />
@@ -264,12 +288,15 @@ export function PdfPage({
       )}
 
       {headerMode === 'afterFirstPage' && (
-        <ContinuationHeaderBand
-          bandWidth={bandWidth}
-          bandDataUrl={bandDataUrl}
-          title={headerTitle}
-          subtitle={headerSubtitle}
-        />
+        <>
+          <ContinuationHeaderBand
+            bandWidth={bandWidth}
+            bandDataUrl={bandDataUrl}
+            title={headerTitle}
+            subtitle={headerSubtitle}
+          />
+          <ContinuationTopSpacer />
+        </>
       )}
 
       {children}

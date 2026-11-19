@@ -4,8 +4,13 @@ Formato libre, en español rioplatense, un bloque por versión (tag en
 GitHub). No sigue semver estricto -- el paquete es de uso interno,
 instalado por SHA o tag fijo.
 
-## Sin publicar
+## v0.5.3
 
+- `PdfPage`: el margen superior de la hoja 1 pasa de 29 a 17 mm con
+  `header="afterFirstPage"`; los informes con `ReportHero` arrancan
+  más arriba. Puede cambiar dónde cae algún corte de hoja. Las hojas
+  2 en adelante conservan los 29 mm y la barra fina, igual que antes;
+  los demás modos de header (`"always"`, `"never"`) no cambian.
 - Documentación: aclarado en el README de `HorizontalBarChart` que el
   corte de rótulos largos con "…" solo se activa si se pasa
   `labelLines` (1 o 2) -- sin esa prop, el rótulo se dibuja tal cual,

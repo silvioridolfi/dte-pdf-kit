@@ -120,6 +120,12 @@ export const pageMargins = {
   top: mm(29),
   bottom: mm(28),
   side: mm(15),
+  /** Margen superior de la hoja 1 con `header="afterFirstPage"` --
+   * sin la barra fina (no existe en esa hoja, ver `PdfPage`), no hace
+   * falta reservarle los 29mm de `top`; el banner de `ReportHero` (o
+   * lo que sea el primer contenido) sube a 17mm. Las hojas 2 en
+   * adelante siguen usando `top` (29mm), con la barra fina. */
+  firstPageTopNoHeader: mm(17),
 }
 
 export const header = {
